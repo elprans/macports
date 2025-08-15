@@ -1,0 +1,24 @@
+From d2d79fedff9dfd777cd2a746fb3c3632f79630e7 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@edgedb.com>
+Date: Fri, 22 Nov 2024 22:29:44 -0800
+Subject: [PATCH] Prefer port version of gpg2
+
+---
+ helpers/helpers.go | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/helpers/helpers.go b/helpers/helpers.go
+index 9877a1c..a97595a 100644
+--- a/helpers/helpers.go
++++ b/helpers/helpers.go
+@@ -14,6 +14,7 @@ import (
+ func DetectGpgBinary() (string, error) {
+ 	// Look in $PATH first, then check common locations - the first successful result wins
+ 	gpgBinaryPriorityList := []string{
++		"/opt/local/bin/gpg2",
+ 		"gpg2", "gpg",
+ 		"/bin/gpg2", "/usr/bin/gpg2", "/usr/local/bin/gpg2",
+ 		"/bin/gpg", "/usr/bin/gpg", "/usr/local/bin/gpg",
+-- 
+2.47.0
+

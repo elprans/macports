@@ -1,0 +1,113 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+
+PortSystem          1.0
+PortGroup           github 1.0
+
+name                swtpm
+categories          security emulators
+platforms           darwin
+license             BSD
+maintainers         nomaintainer
+description         Software TPM emulator (TPM 1.2/2.0) based on libtpms
+long_description    The SWTPM package provides TPM emulators with socket and \
+                    character-device interfaces to libtpms, plus tools for TPM \
+                    provisioning and certificate handling.
+homepage            https://github.com/stefanberger/swtpm
+
+github.setup        stefanberger swtpm 0.10.1 v
+github.tarball_from archive
+distname            ${name}-${version}
+checksums           sha256  f8da11cadfed27e26d26c5f58a7b8f2d14d684e691927348906b5891f525c684 \
+                    rmd160  6de58b85fc0242e49adbf22ba6a9468f0c08980c \
+                    size    415992
+
+use_autoreconf      yes
+
+# Common deps
+depends_build-append \
+                    port:autoconf \
+                    port:automake \
+                    port:libtool \
+                    port:pkgconfig \
+                    port:gawk
+
+depends_lib-append  port:gmp \
+                    port:json-glib \
+                    port:libtasn1 \
+                    port:libtpms \
+                    port:gettext
+
+# Crypto/TLS backends as variants.
+# Default to +openssl; you may also add +gnutls (both can be enabled).
+default_variants    +openssl
+
+# Start with neither enabled; variants toggle them on.
+configure.args-append \
+                    --without-openssl \
+                    --without-gnutls \
+                    --disable-tests
+
+# Ensure our headers/libs are searched first so AC_CHECK_LIB([-lcrypto]) hits /opt/local
+configure.cppflags-prepend -I${prefix}/include
+configure.ldflags-prepend  -L${prefix}/lib -Wl,-search_paths_first
+configure.env-append       PKG_CONFIG_PATH=${prefix}/lib/pkgconfig
+
+variant openssl description {Enable OpenSSL support} {
+    depends_lib-append  port:openssl3
+    configure.args-delete --without-openssl
+    # Some configs accept --with-openssl[=PREFIX]; keep both forms:
+    configure.args-append  --with-openssl --with-openssl=${prefix}
+    # Make the OpenSSL selection unambiguous:
+    configure.env-append \
+        OPENSSL_CFLAGS="-I${prefix}/include" \
+        OPENSSL_LIBS="-L${prefix}/lib -lssl -lcrypto"
+}
+
+variant gnutls description {Enable GnuTLS support} {
+    depends_lib-append  port:gnutls
+    configure.args-delete --without-gnutls
+    configure.args-append  --with-gnutls
+}
+
+test.run            yes
+test.target         check
+
+# Runtime directories for sockets and state
+set swtpm_rundir    ${prefix}/var/run/swtpm
+set swtpm_statedir  ${prefix}/var/lib/swtpm
+
+post-destroot {
+    # Ensure runtime/state directories exist in destroot
+    xinstall -m 0755 -d ${destroot}${swtpm_rundir}
+    xinstall -m 0755 -d ${destroot}${swtpm_statedir}
+}
+
+destroot.keepdirs-append \
+    ${destroot}${swtpm_rundir} \
+    ${destroot}${swtpm_statedir}
+
+notes "
+A basic launchd service is provided (disabled by default). To enable:
+  sudo port load swtpm
+This will start a TPM 2.0 socket service at:
+  server: ${swtpm_rundir}/swtpm.sock
+  ctrl:   ${swtpm_rundir}/swtpm-ctrl.sock
+State is stored under:
+  ${swtpm_statedir}
+"
+
+startupitem.create  yes
+startupitem.name    swtpm
+startupitem.executable  ${prefix}/bin/swtpm socket \
+                        --tpm2 \
+                        --ctrl type=unixio,path=${swtpm_rundir}/swtpm-ctrl.sock,terminate \
+                        --server type=unixio,path=${swtpm_rundir}/swtpm.sock \
+                        --tpmstate dir=${swtpm_statedir} \
+                        --pid file=${swtpm_rundir}/swtpm.pid \
+                        --flags not-need-init
+
+post-activate {
+    # Create runtime/state dirs for live system as well (idempotent)
+    if {![file isdirectory ${swtpm_rundir}]}   { file mkdir ${swtpm_rundir} }
+    if {![file isdirectory ${swtpm_statedir}]} { file mkdir ${swtpm_statedir} }
+}

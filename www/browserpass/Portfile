@@ -1,0 +1,76 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+version             3.1.0
+revision            0
+
+PortGroup           golang 1.0
+
+set my_name         browserpass-native
+
+go.setup            github.com/browserpass/${my_name} ${version}
+go.package          github.com/browserpass/${my_name}
+
+name                browserpass
+
+homepage            https://github.com/browserpass/browserpass-native
+
+description         WebExtension host binary for pass, a UNIX password manager
+
+long_description    This is a host application for browserpass browser extension \
+                    providing it access to your password store. The communication \
+                    is handled through Native Messaging API.
+
+categories          www
+installs_libs       no
+license             MIT
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+
+# Allow Go to fetch dependencies at build time
+go.offline_build no
+
+use_parallel_build  no
+
+checksums           ${distname}${extract.suffix} \
+                        rmd160  2513330144d34219f88825803978d9af271120ed \
+                    	sha256  df90e9a02faa0081fe8bce78a8ecef1e4394f642955f18f452ee0079be85816e \
+                    	size    21835
+
+depends_run         path:bin/gpg:gnupg2 port:pinentry-mac
+
+github.tarball_from archive
+
+dist_subdir         ${name}
+
+patch.pre_args      -p1
+patchfiles-append   gpg2-path.patch
+
+variant firefox description {Add Firefox integration} {
+}
+
+post-patch {
+    reinplace -E "s|%%replace%%|${prefix}/libexec/${my_name}|g" \
+        ${worksrcpath}/browser-files/firefox-host.json \
+        ${worksrcpath}/browser-files/chromium-host.json
+}
+
+destroot {
+    xinstall -m 0755 -W ${worksrcpath} ${my_name} \
+	${destroot}${prefix}/libexec/${my_name}
+
+    set app_id com.github.browserpass.native    
+
+    if {[variant_isset firefox]} {
+        xinstall -d "${destroot}/Library/Application Support/Mozilla/NativeMessagingHosts/"
+        xinstall -m 0644 -W ${worksrcpath} browser-files/firefox-host.json \
+	    "${destroot}/Library/Application Support/Mozilla/NativeMessagingHosts/${app_id}.json"
+    }
+
+    set docdir ${prefix}/share/doc/${name}
+    xinstall -d ${destroot}${docdir}
+    xinstall -m 0644 -W ${worksrcpath} LICENSE README.md ${destroot}${docdir}
+}
+
+github.livecheck.regex {([0-9.]+)}

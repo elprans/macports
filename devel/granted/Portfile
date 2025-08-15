@@ -1,0 +1,76 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+version             0.36.3
+revision            0
+
+PortGroup           golang 1.0
+
+go.setup            github.com/common-fate/granted ${version} v
+go.package          github.com/common-fate/granted
+
+name                granted
+
+homepage            https://www.granted.dev/
+
+description         The easiest way to access your cloud
+
+long_description    ${name} is a CLI application which simplifies \
+                    access to cloud roles and allows multiple cloud \
+                    accounts to be opened in your web browser \
+                    simultaneously.
+
+categories          devel
+installs_libs       no
+license             MIT
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+
+# Allow Go to fetch dependencies at build time
+go.offline_build no
+
+# If not set, it states that it's a developer build
+# Suppress build date for reproducible builds
+# Switch to SOURCE_DATE_EPOCH approach in the future
+# See https://trac.macports.org/ticket/59672
+set build_date      SUPPRESSED
+set cfgmod          ${go.package}/internal/build
+
+build.pre_args-append \
+                    -ldflags \
+                        '-X ${cfgmod}.ConfigFolderName=.config/granted \
+                         -X ${cfgmod}.Version=${version} \
+                         -X ${cfgmod}.Date=${build_date} \
+                         -X ${cfgmod}.BuiltBy=macports' \
+		    -o bin/granted
+
+build.args          cmd/${name}/main.go
+
+use_parallel_build  no
+
+checksums           ${distname}${extract.suffix} \
+                        rmd160  e0201b3174a8f44483e6915435066757d5bf4987 \
+                        sha256  9f20bf0489aafd1d5790c697e6e8d8f1e0a8432d5e4a388c775f63c0776511ac \
+                        size    878479
+
+github.tarball_from archive
+
+dist_subdir         ${name}
+
+patch {
+    reinplace -E {s|/usr/local/bin|${prefix}/bin|g} ${worksrcpath}/pkg/alias/alias.go
+}
+
+destroot {
+    xinstall -m 0755 -W ${worksrcpath} bin/granted ${destroot}${prefix}/bin/granted
+    ln -s ${name} ${destroot}${prefix}/bin/assumego
+    xinstall -m 0755 -W ${worksrcpath} scripts/assume scripts/assume.fish \
+        ${destroot}${prefix}/bin/
+
+    set docdir ${prefix}/share/doc/${name}
+    xinstall -d ${destroot}${docdir}
+    xinstall -m 0644 -W ${worksrcpath} LICENCE README.md ${destroot}${docdir}
+}
+
+github.livecheck.regex {([0-9.]+)}

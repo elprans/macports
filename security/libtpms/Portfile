@@ -1,0 +1,71 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+
+PortSystem          1.0
+PortGroup           github 1.0
+
+name                libtpms
+categories          security devel
+platforms           darwin
+license             BSD
+maintainers         nomaintainer
+description         Library providing TPM 1.2/2.0 emulation used by swtpm
+long_description    Libtpms provides TPM 1.2 and TPM 2.0 emulation for \
+                    integration into hypervisors (e.g. QEMU). It is the \
+                    backend used by swtpm.
+
+# Upstream
+github.setup        stefanberger libtpms 0.10.1 v
+github.tarball_from archive
+checksums           sha256  ebc24f3191d90f6cf0b4d4200cd876db4bd224b3c565708bbea0a82ee275e0fb \
+                    rmd160  99cb0bf53839a8dc3b11fc0a5b9090fe55602183 \
+                    size    1399253
+
+# Build system
+use_configure       yes
+# Upstream requires autogen.sh first
+pre-configure {
+    system -W ${worksrcpath} "./autogen.sh"
+}
+
+# Build deps
+depends_build-append \
+                    port:autoconf \
+                    port:automake \
+                    port:libtool \
+                    port:pkgconfig \
+                    port:gawk
+
+# Crypto backend variants (default: OpenSSL)
+default_variants    +openssl
+# Start with neither; variants toggle them on
+configure.args-append \
+                    --without-openssl
+
+variant openssl description {Build libtpms against OpenSSL (default)} {
+    depends_lib-append  port:openssl3
+    configure.args-delete --without-openssl
+    configure.args-append  --with-openssl
+}
+
+# (Optional) If you ever want to experiment with NSS/freebl (TPM 1.2 only),
+# add a +freebl variant here. macOS packaging for freebl is non-trivial,
+# so we omit it for now.
+
+# Enable both TPM 1.2 and TPM 2.0 support (these are the useful defaults)
+configure.args-append \
+                    --with-tpm12 \
+                    --with-tpm2
+
+# Make sure pkg-config sees things in /opt/local
+configure.env-append PKG_CONFIG_PATH=${prefix}/lib/pkgconfig
+
+test.run            yes
+test.target         check
+
+# Install-time notes
+notes "
+libtpms ${version} provides TPM 1.2 and 2.0 emulation and is required by swtpm.
+Built with OpenSSL by default. To verify:
+  pkg-config --modversion libtpms
+"
+

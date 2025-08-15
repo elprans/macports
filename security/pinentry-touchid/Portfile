@@ -1,0 +1,51 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+version             0.0.3
+revision            0
+
+PortGroup           golang 1.0
+
+name                pinentry-touchid
+
+homepage            https://github.com/jorgelbg/${name}
+
+description         Custom GPG pinentry program for macOS that allows using Touch ID
+
+categories          security
+installs_libs       no
+license             Apache-2.0
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+
+# Allow Go to fetch dependencies at build time
+go.setup            github.com/jorgelbg/${name} ${version} v
+go.package          github.com/jorgelbg/${name}
+
+go.offline_build no
+
+use_parallel_build  no
+
+checksums           ${distname}${extract.suffix} \
+                        rmd160  d1099d933d3b1193d065e2e50d32326183f0c263 \
+                        sha256  fefa3b671664812588b8c1854798fc1d9b27bff666163ad0ba161b9951f902ba \
+                        size    32558
+
+depends_run         port:pinentry-mac \
+                    path:bin/gpg:gnupg2
+
+github.tarball_from archive
+
+dist_subdir         ${name}
+
+destroot {
+    xinstall -m 0755 -W ${worksrcpath} ${name} \
+        ${destroot}${prefix}/bin/${name}
+
+    set docdir ${prefix}/share/doc/${name}
+    xinstall -d ${destroot}${docdir}
+    xinstall -m 0644 -W ${worksrcpath} LICENSE README.md ${destroot}${docdir}
+}
+
+github.livecheck.regex {([0-9.]+)}
