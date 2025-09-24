@@ -1,0 +1,24 @@
+From 259ba7d081465e7b5312a6960fdfb7bb1a905c47 Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <elvis@geldata.com>
+Date: Wed, 24 Sep 2025 11:38:23 -0700
+Subject: [PATCH] bootstrap link bug workaround
+
+---
+ src/bootstrap/src/lib.rs | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/bootstrap/src/lib.rs b/src/bootstrap/src/lib.rs
+index f44fe4548a1..84fa0270c99 100644
+--- src/bootstrap/src/lib.rs
++++ src/bootstrap/src/lib.rs
+@@ -1696,7 +1696,6 @@ fn copy_link_internal(&self, src: &Path, dst: &Path, dereference_symlinks: bool)
+             return;
+         }
+         if let Err(e) = fs::remove_file(dst)
+-            && cfg!(windows)
+             && e.kind() != io::ErrorKind::NotFound
+         {
+             // workaround for https://github.com/rust-lang/rust/issues/127126
+-- 
+2.51.0
+
