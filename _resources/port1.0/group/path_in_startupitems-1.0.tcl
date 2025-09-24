@@ -11,7 +11,7 @@ default path_in_startupitems.enable yes
 # Space-separated list of directories to ensure are present in PATH
 # (prepended by default). Example: "${prefix}/bin ${prefix}/sbin"
 options path_in_startupitems.paths
-default path_in_startupitems.paths "${prefix}/bin"
+default path_in_startupitems.paths "${prefix}/bin ${prefix}/sbin"
 
 # Whether to prepend (yes) or append (no) the missing paths to an existing PATH
 options path_in_startupitems.prepend
@@ -19,7 +19,7 @@ default path_in_startupitems.prepend yes
 
 # Fallback PATH to use if the plist has no PATH at all
 options path_in_startupitems.fallback
-default path_in_startupitems.fallback "${prefix}/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+default path_in_startupitems.fallback "${prefix}/bin:${prefix}/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 # ---- Implementation ----------------------------------------------------------
 proc path_in_startupitems#_plist_has_path {plist} {
@@ -46,7 +46,7 @@ proc path_in_startupitems#_set_path {plist newpath} {
 }
 
 proc path_in_startupitems#_contains_dir {path dir} {
-    # Return 1 if PATH contains dir as a segment, else 0
+    # Return 1 if PAError: portgroup_hooks: callback 'configfiles#do_post_destroot' failed in phase 'post-destroot': can't read "destroot": no such variableTH contains dir as a segment, else 0
     # Use a regex to respect ':' boundaries
     set re "(^|:)[string map {* \\* ? \\? + \\+ . \\. ( \\( ) \\) [ \\[ ] \\] ^ \\^ $ \\$} $dir](:|$)"
     return [expr {[regexp -- $re $path] ? 1 : 0}]
@@ -87,27 +87,49 @@ proc path_in_startupitems#_inject {plist paths prepend fallback} {
 }
 
 proc path_in_startupitems#do_post_destroot {} {
-    ui_msg "!!!AAA"
-    if {![tbool ${path_in_startupitems.enable}]} {
+    global destroot prefix
+    global path_in_startupitems.enable \
+           path_in_startupitems.paths \
+           path_in_startupitems.prepend \
+           path_in_startupitems.fallback
+
+    # honor enable flag directly (expects 1/0 or yes/no)
+    if {!${path_in_startupitems.enable}} {
         return
     }
 
-    # Where startupitems put their plists inside destroot
-    set plist_dirs [list \
-        "${destroot}${prefix}/Library/LaunchDaemons" \
-        "${destroot}${prefix}/Library/LaunchAgents" \
+    # Build $destroot/$prefix robustly: make prefix relative first.
+    set rootprefix [file join $destroot [string trimleft $prefix "/"]]
+
+    # Modern nested layout + legacy flat layout
+    set patterns [list \
+        [file join $rootprefix etc     LaunchDaemons * *.plist] \
+        [file join $rootprefix etc     LaunchAgents  * *.plist] \
+        [file join $rootprefix Library LaunchDaemons   *.plist] \
+        [file join $rootprefix Library LaunchAgents    *.plist] \
     ]
 
-    # Collect requested paths into a Tcl list (split on whitespace)
-    set wanted_paths [split ${path_in_startupitems.paths}]
-    set do_prepend   [tbool ${path_in_startupitems.prepend}]
-    set fallback     ${path_in_startupitems.fallback}
+    ui_msg "${patterns}"
 
-    foreach dir $plist_dirs {
-        foreach plist [glob -nocomplain -types f "${dir}/*.plist"] {
-            ui_msg "patching ${plist}"
-            path_in_startupitems#_inject $plist $wanted_paths $do_prepend $fallback
+    set wanted   [split ${path_in_startupitems.paths}]   ;# space-separated list
+    set prepend  ${path_in_startupitems.prepend}         ;# yes/no or 1/0
+    set fallback ${path_in_startupitems.fallback}
+
+    # collect plists (dedup)
+    array unset seen
+    set plists {}
+    foreach pat $patterns {
+        foreach f [glob -nocomplain -types f $pat] {
+            if {![info exists seen($f)]} {
+                set seen($f) 1
+                lappend plists $f
+            }
         }
+    }
+
+    foreach plist $plists {
+        ui_msg "path_in_startupitems: patching PATH in ${plist}"
+        path_in_startupitems#_inject $plist $wanted $prepend $fallback
     }
 }
 

@@ -22,6 +22,8 @@
 #   # defaults to etc/${name}/*.conf
 #   # configfiles.patterns {etc/myd/*.conf etc/myd.d/*.rules}
 
+PortGroup portgroup_hooks 1.0
+
 namespace eval configfiles {
     variable entries {} ;# dict: dst -> sample
 }
@@ -99,9 +101,11 @@ proc configfiles::expand_patterns_into_entries {root} {
 }
 
 # --- post-destroot: move live files to .sample based on patterns ---
-post-destroot-append {
+proc configfiles#do_post_destroot {} {
+    global destroot
+
     # Expand patterns in the destroot tree
-    configfiles::expand_patterns_into_entries $destroot
+    configfiles::expand_patterns_into_entries ${destroot}
     if {![info exists ::configfiles::entries] || ![dict size $::configfiles::entries]} { return }
 
     foreach dst [dict keys $::configfiles::entries] {
@@ -121,7 +125,7 @@ post-destroot-append {
 }
 
 # --- post-activate: install/merge with material-diff; expand patterns live ---
-proc configfiles#do_post_destroot {} {
+proc configfiles#do_post_activate {} {
     # Ensure entries include any live files that match patterns (e.g., upgrades)
     configfiles::expand_patterns_into_entries ""
     if {![info exists ::configfiles::entries] || ![dict size $::configfiles::entries]} { return }
@@ -144,7 +148,6 @@ proc configfiles#do_post_destroot {} {
             ui_msg "configfiles: installed default ${dst}"
             continue
         }
-proc path_in_startupitems#do_post_destroot {} {
         set mat_user   [configfiles::materialize $dst]
         set mat_sample [configfiles::materialize $sample]
 
@@ -182,3 +185,4 @@ proc path_in_startupitems#do_post_destroot {} {
 }
 
 portgroup_hooks#register post-destroot configfiles#do_post_destroot 0
+portgroup_hooks#register post-activate configfiles#do_post_activate 0

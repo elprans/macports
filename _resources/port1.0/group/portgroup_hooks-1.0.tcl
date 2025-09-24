@@ -1,52 +1,53 @@
 # portgroup_hooks-1.0.tcl
-# Lightweight callback registry + runner for MacPorts phases.
+# Generic callback registry + runner for MacPorts phases (e.g. post-destroot, post-activate).
 
 namespace eval portgroup_hooks {
-    variable post_destroot {}
-    variable installed_default_post_destroot 0
+    # callbacks(phase) -> list of {priority proc}
+    variable callbacks
+    # installed(phase) -> boolean (whether we installed the default phase body)
+    variable installed
 }
 
-# Register a callback proc to be run for a phase.
-# Supported phases in this snippet: post-destroot
-# 'priority' is an integer; higher runs first. Default 0.
+# Register a 0-arg callback proc for a phase. Higher priority runs earlier.
 proc portgroup_hooks#register {phase procname {priority 0}} {
-    switch -- $phase {
-        post-destroot {
-            lappend ::portgroup_hooks::post_destroot [list $priority $procname]
-        }
-        default {
-            error "portgroup_hooks: unsupported phase '$phase'"
+    portgroup_hooks#_install_default $phase
+    lappend ::portgroup_hooks::callbacks($phase) [list $priority $procname]
+}
+
+# Run all callbacks for a phase. Any error aborts the phase immediately.
+proc portgroup_hooks#run {phase} {
+    set lst {}
+    if {[info exists ::portgroup_hooks::callbacks($phase)]} {
+        set lst $::portgroup_hooks::callbacks($phase)
+    }
+    if {[llength $lst] == 0} { return }
+
+    set sorted [lsort -integer -decreasing -index 0 $lst]
+    ui_debug "portgroup_hooks: running [llength $sorted] callbacks for phase '$phase'"
+
+    foreach item $sorted {
+        set cb [lindex $item 1]
+        if {[catch { {*}$cb } err opts]} {
+            ui_error "portgroup_hooks: callback '$cb' failed in phase '$phase': $err"
+            # rethrow to abort the phase
+            return -code error -errorinfo [dict get $opts -errorinfo] $err
         }
     }
 }
 
-# Internal: return sorted list of callback procs by priority (desc)
-proc portgroup_hooks#_sorted {lst} {
-    set sorted [lsort -integer -decreasing -index 0 $lst]
-    set out {}
-    foreach item $sorted { lappend out [lindex $item 1] }
-    return $out
-}
+# Convenience runners (optional, handy in Portfiles)
+proc portgroup_hooks#run_post_destroot {}  { portgroup_hooks#run post-destroot }
+proc portgroup_hooks#run_post_activate {}  { portgroup_hooks#run post-activate }
 
-# Run all registered post-destroot callbacks (safe to call multiple times)
-proc portgroup_hooks#run_post_destroot {} {
-    set cbs [portgroup_hooks#_sorted $::portgroup_hooks::post_destroot]
-    if {[llength $cbs] == 0} {
+# --- internals ---------------------------------------------------------------
+
+# Ensure a default phase body exists that calls our runner.
+proc portgroup_hooks#_install_default {phase} {
+    if {[info exists ::portgroup_hooks::installed($phase)] && $::portgroup_hooks::installed($phase)} {
         return
     }
-    ui_debug "portgroup_hooks: running [llength $cbs] post-destroot callbacks"
-    foreach cb $cbs {
-        if {[catch { {*}$cb } err]} {
-            ui_warn "portgroup_hooks: callback '$cb' failed: $err"
-        }
-    }
-}
-
-# Install a default post-destroot that calls the runner
-if {!$::portgroup_hooks::installed_default_post_destroot} {
-    set ::portgroup_hooks::installed_default_post_destroot 1
-    post-destroot {
-        portgroup_hooks#run_post_destroot
-    }
+    set ::portgroup_hooks::installed($phase) 1
+    # Define the phase body to call the runner (e.g. "post-activate { portgroup_hooks#run post-activate }")
+    $phase "portgroup_hooks#run $phase"
 }
 

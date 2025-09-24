@@ -1,0 +1,102 @@
+# Portfile for PowerShell (pwsh) on macOS
+PortSystem          1.0
+
+name                powershell
+version             7.5.2
+categories          shells
+platforms           darwin
+license             MIT
+maintainers         nomaintainer
+supported_archs     x86_64 arm64
+universal_variant   no
+installs_libs       no
+
+description         Cross-platform command-line shell and scripting language.
+long_description    PowerShell is a cross-platform task automation solution \
+                    made up of a command-line shell, scripting language, and \
+                    configuration management framework, built on .NET. \
+                    This port installs the official macOS binary archive \
+                    into ${prefix}/libexec and provides a pwsh symlink in ${prefix}/bin.
+
+homepage            https://github.com/PowerShell/PowerShell
+master_sites        https://github.com/PowerShell/PowerShell/releases/download/v${version}
+
+# We use the official tar.gz release artifacts for each architecture.
+use_configure       no
+build {}
+
+# Select the correct macOS archive + checksum per CPU
+if {${build_arch} eq "arm64"} {
+    set ps_arch         arm64
+    set distname        powershell-${version}-osx-${ps_arch}
+    distfiles           ${distname}.tar.gz
+    checksums           sha256 84f095de7ddd62c0b2f1d6dc68efe0b35a0fb90c2fe5127de2b0dd15eab4d95c
+    checksums           sha256  a02d1d79589c71e8d35e458d90f085cfc1f0a688ebbea4dab8632187c057f7a1 \
+                        rmd160  773bd5829b1ed36b1912be82ae8098aeaf313546 \
+                        size    70976191
+} else {
+    set ps_arch         x64
+    set distname        powershell-${version}-osx-${ps_arch}
+    distfiles           ${distname}.tar.gz
+    checksums           sha256  905dc9ec0bb588993aaca9fffe15ddbffc764164b09cbdf63d5ea25e8362839c \
+                        rmd160  ac3d7635a70f0183ab91c21c86ad50715762175e \
+                        size    74473469
+}
+
+extract.suffix      .tar.gz
+# Don't assume a fixed worksrcdir; the archive structure varies.
+# worksrcdir will remain the default, but we'll robustly locate the files in destroot.
+
+destroot {
+    # Where we want files to live
+    set appdir ${destroot}${prefix}/libexec/powershell/${version}
+    xinstall -m 0755 -d ${appdir}
+    xinstall -m 0755 -d ${destroot}${prefix}/bin
+
+    # Prefer directory like powershell-<ver>-osx-<arch>/ if present; else use workpath
+    set candidates [glob -nocomplain -directory ${workpath} -types d powershell-${version}-osx-*]
+    if {[llength ${candidates}] >= 1} {
+        set srcdir [lindex ${candidates} 0]
+    } else {
+        set srcdir ${workpath}
+    }
+
+    # Normalize paths for safe comparisons
+    set destroot_norm [file normalize ${destroot}]
+    set srcdir_norm   [file normalize ${srcdir}]
+
+    # Copy *contents* of srcdir into libexec, but NEVER copy ${destroot}
+    foreach item [glob -nocomplain -directory ${srcdir} * .*] {
+        set base [file tail $item]
+        if {$base in {. ..}} { continue }
+
+        set item_norm [file normalize $item]
+        # Skip the destroot tree to avoid recursive self-copy
+        if {[string match "${destroot_norm}*" ${item_norm}]} {
+            continue
+        }
+
+        file copy -force -- $item ${appdir}
+    }
+
+    # Ensure pwsh is executable
+    if {[file exists ${appdir}/pwsh]} {
+        file attributes ${appdir}/pwsh -permissions ugo+x
+    }
+
+    # Symlink on PATH
+    set target ${prefix}/libexec/powershell/${version}/pwsh
+    ln -sf ${target} ${destroot}${prefix}/bin/pwsh
+}
+
+notes "
+PowerShell has been installed to:
+  ${prefix}/libexec/powershell/${version}
+
+A symlink has been created at:
+  ${prefix}/bin/pwsh
+"
+
+livecheck.type      regex
+livecheck.url       https://github.com/PowerShell/PowerShell/releases/latest
+livecheck.regex     {v(\d+(?:\.\d+)+)}
