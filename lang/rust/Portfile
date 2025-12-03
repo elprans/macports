@@ -191,6 +191,7 @@ configure.args-append       --disable-codegen-tests \
                             --set=build.verbose=0 \
                             --release-channel=stable \
                             --enable-extended \
+                            --enable-profiler \
                             --tools=rustfmt,clippy,rustdoc,rust-analyzer,rust-analyzer-proc-macro-srv \
                             --llvm-cflags="${rust_build.llvm.cflags}" \
                             --llvm-cxxflags="${rust_build.llvm.cxxflags}" \
