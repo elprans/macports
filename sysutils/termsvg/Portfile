@@ -1,0 +1,59 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+version             0.10.0
+revision            0
+
+PortGroup           golang 1.0
+
+go.setup            github.com/mrmarble/termsvg ${version} v
+go.package          github.com/mrmarble/termsvg
+
+name                termsvg
+
+homepage            https://github.com/mrmarble/termsvg
+
+description         Record, replay and export terminal sessions as SVG
+
+long_description    ${name} is an all-in-one CLI tool to record, replay \
+                    and export your terminal session to SVG. It records \
+                    terminal sessions in asciicast format, replays them \
+                    in the terminal, and exports them as animated SVG images.
+
+categories          sysutils
+installs_libs       no
+license             GPL-3+
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+
+# Allow Go to fetch dependencies at build time
+go.offline_build no
+
+use_parallel_build  no
+
+build.pre_args-append \
+                    -ldflags \
+                        '-s -w -X main.version=${version}'
+
+build.args          ./cmd/termsvg
+
+checksums           ${distname}${extract.suffix} \
+                        rmd160  48c3c6ff8121e7cf9ec20a583d3c77ceaf93cee6 \
+                        sha256  7b9c7aae3f58c9dce7930fe2868e39d59817e143d13e5771c268f9c7f0cbdf31 \
+                        size    281200
+
+github.tarball_from archive
+
+dist_subdir         ${name}
+
+destroot {
+    xinstall -m 0755 -W ${worksrcpath} termsvg \
+        ${destroot}${prefix}/bin/termsvg
+
+    set docdir ${prefix}/share/doc/${name}
+    xinstall -d ${destroot}${docdir}
+    xinstall -m 0644 -W ${worksrcpath} LICENSE README.md ${destroot}${docdir}
+}
+
+github.livecheck.regex {([0-9.]+)}
