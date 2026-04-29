@@ -4,7 +4,7 @@ PortSystem          1.0
 PortGroup           npm 1.0
 
 name                opencode
-version             1.14.24
+version             1.14.29
 revision            0
 
 categories          llm
@@ -28,6 +28,6 @@ homepage            https://opencode.ai
 
 npm.rootname        opencode-ai
 
-checksums           rmd160  0f3f7c86f1e669b60a50148f1aed38c16ea2c71c \
-                    sha256  08e5d2927f1b81e81d9187de25dac5f33e75a6fa84b40e392950cb22f5b21de6 \
-                    size    3341
+checksums           rmd160  c61e7a4f4fd65c7917b4fe49deb9cef0dc2fbbcc \
+                    sha256  94dfea34b2fd83856ff0d7d3030bcbd8a4475deb3bc93263b398b973f96a1939 \
+                    size    3348
