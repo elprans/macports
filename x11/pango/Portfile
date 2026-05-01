@@ -36,6 +36,7 @@ long_description        The goal of the Pango project is to provide an \
 meson.wrap_mode         nodownload
 
 depends_build-append \
+                        path:share/gir-1.0/GObject-2.0.gir:glib2 \
                         path:lib/pkgconfig/gobject-introspection-1.0.pc:gobject-introspection \
                         port:help2man \
                         path:bin/pkg-config:pkgconfig
