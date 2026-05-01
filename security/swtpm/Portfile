@@ -45,6 +45,7 @@ default_variants    +openssl
 configure.args-append \
                     --without-openssl \
                     --without-gnutls \
+                    --without-cuse \
                     --disable-tests
 
 # Ensure our headers/libs are searched first so AC_CHECK_LIB([-lcrypto]) hits /opt/local
