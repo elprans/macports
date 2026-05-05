@@ -9,7 +9,7 @@ legacysupport.newest_darwin_requires_legacy 16
 
 name                    qemu
 version                 11.0.0
-revision                1
+revision                2
 categories              emulators
 license                 GPL-2+
 maintainers             {raimue @raimue} \
@@ -73,6 +73,9 @@ patchfiles-append       patch-qemu-tcg-region.diff
 
 # Backport fix for restoring internal snapshots with arm64 HVF
 patchfiles-append       patch-qemu-target-arm-hvf.diff
+
+# Backport fix for PMU clear register handling with arm64 HVF
+patchfiles-append       patch-qemu-target-arm-hvf-pmu.diff
 
 # hfscompression workaround
 patchfiles-append       patch-qemu-block-file-posix.diff

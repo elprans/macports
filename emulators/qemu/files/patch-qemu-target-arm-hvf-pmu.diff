@@ -1,0 +1,26 @@
+--- target/arm/hvf/hvf.c.orig
++++ target/arm/hvf/hvf.c
+@@ -1837,18 +1837,18 @@ static int hvf_sysreg_write(CPUState *cpu, uint32_t reg, uint64_t val)
+             return 0;
+         case SYSREG_PMCNTENCLR_EL0:
+             env->cp15.c9_pmcnten &= ~(val & pmu_counter_mask(env));
+             return 0;
+         case SYSREG_PMINTENCLR_EL1:
+-            pmu_op_start(env);
+-            env->cp15.c9_pminten |= val;
+-            pmu_op_finish(env);
++            val &= pmu_counter_mask(env);
++            env->cp15.c9_pminten &= ~val;
++            pmu_update_irq(env);
+             return 0;
+         case SYSREG_PMOVSCLR_EL0:
+-            pmu_op_start(env);
++            val &= pmu_counter_mask(env);
+             env->cp15.c9_pmovsr &= ~val;
+-            pmu_op_finish(env);
++            pmu_update_irq(env);
+             return 0;
+         case SYSREG_PMSWINC_EL0:
+             pmu_op_start(env);
+             pmswinc_write(env, val);
+             pmu_op_finish(env);
