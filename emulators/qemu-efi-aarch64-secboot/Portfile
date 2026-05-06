@@ -1,0 +1,109 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem              1.0
+
+name                    qemu-efi-aarch64-secboot
+version                 2025.11
+revision                1
+categories              emulators
+license                 BSD
+maintainers             openmaintainer
+supported_archs         noarch
+platforms               any
+
+description             Secure Boot UEFI firmware for 64-bit ARM virtual machines
+long_description        Debian sid packaged edk2/AAVMF Secure Boot firmware for 64-bit ARM virtual machines, shipping the Secure Boot firmware image plus qcow2-formatted empty and Microsoft-enrolled variable store templates, along with Debian-style firmware descriptors for QEMU and libvirt.
+
+homepage                https://www.tianocore.org/
+
+set debian_version      2025.11-5
+set debian_pkgname      qemu-efi-aarch64
+master_sites            https://deb.debian.org/debian/pool/main/e/edk2/
+distfiles               ${debian_pkgname}_${debian_version}_all.deb
+distname                ${debian_pkgname}_${debian_version}_all
+dist_subdir             ${name}
+extract.suffix          .deb
+
+checksums               rmd160  7ecaa6c547ed2b0aaaac1531cc2da045dd165ec9 \
+                        sha256  95388b7606e821dd8af1dd852767094d569ff78cb2e8f1dc218b60959a52ee81 \
+                        size    5248532
+
+depends_build-append    port:qemu
+
+use_configure           no
+build {}
+
+extract {
+    xinstall -d ${workpath}/${worksrcdir}
+    system -W ${workpath}/${worksrcdir} "/usr/bin/ar x ${distpath}/${distfiles}"
+    system -W ${workpath}/${worksrcdir} "/usr/bin/tar -xf data.tar.xz"
+}
+
+post-extract {
+    file mkdir ${worksrcpath}/macports-firmware
+    file copy -force \
+        ${worksrcpath}/usr/share/qemu/firmware/40-edk2-aarch64-secure-enrolled.json \
+        ${worksrcpath}/macports-firmware/40-edk2-aarch64-secure-enrolled.json
+    file copy -force \
+        ${worksrcpath}/usr/share/qemu/firmware/50-edk2-aarch64-secure.json \
+        ${worksrcpath}/macports-firmware/50-edk2-aarch64-secure.json
+
+    reinplace "s|/usr/share/AAVMF/|${prefix}/share/AAVMF/|g" \
+        ${worksrcpath}/macports-firmware/40-edk2-aarch64-secure-enrolled.json
+    reinplace "s|AAVMF_CODE.ms.fd|AAVMF_CODE.secboot.fd|g" \
+        ${worksrcpath}/macports-firmware/40-edk2-aarch64-secure-enrolled.json
+    reinplace "s|AAVMF_VARS.ms.fd|AAVMF_VARS.secboot.qcow2|g" \
+        ${worksrcpath}/macports-firmware/40-edk2-aarch64-secure-enrolled.json
+
+    reinplace "s|/usr/share/AAVMF/|${prefix}/share/AAVMF/|g" \
+        ${worksrcpath}/macports-firmware/50-edk2-aarch64-secure.json
+    reinplace "s|AAVMF_VARS.fd|AAVMF_VARS.qcow2|g" \
+        ${worksrcpath}/macports-firmware/50-edk2-aarch64-secure.json
+
+    foreach json [list \
+        ${worksrcpath}/macports-firmware/40-edk2-aarch64-secure-enrolled.json \
+        ${worksrcpath}/macports-firmware/50-edk2-aarch64-secure.json] {
+        set fd [open ${json} r]
+        set data [read ${fd}]
+        close ${fd}
+
+        set old_secboot [format {"filename": "%s/share/AAVMF/AAVMF_VARS.secboot.qcow2",
+            "format": "raw"} ${prefix}]
+        set new_secboot [format {"filename": "%s/share/AAVMF/AAVMF_VARS.secboot.qcow2",
+            "format": "qcow2"} ${prefix}]
+        set old_plain [format {"filename": "%s/share/AAVMF/AAVMF_VARS.qcow2",
+            "format": "raw"} ${prefix}]
+        set new_plain [format {"filename": "%s/share/AAVMF/AAVMF_VARS.qcow2",
+            "format": "qcow2"} ${prefix}]
+
+        set data [string map [list \
+            ${old_secboot} ${new_secboot} \
+            ${old_plain} ${new_plain} \
+        ] ${data}]
+
+        set fd [open ${json} w]
+        puts -nonewline ${fd} ${data}
+        close ${fd}
+    }
+}
+
+destroot {
+    xinstall -d ${destroot}${prefix}/share/AAVMF
+    xinstall -d ${destroot}${prefix}/share/qemu/firmware
+    file copy -force ${worksrcpath}/usr/share/AAVMF/AAVMF_CODE.secboot.fd \
+        ${destroot}${prefix}/share/AAVMF/
+    file copy -force ${worksrcpath}/usr/share/AAVMF/AAVMF_VARS.fd \
+        ${destroot}${prefix}/share/AAVMF/
+    file copy -force ${worksrcpath}/usr/share/AAVMF/AAVMF_VARS.ms.fd \
+        ${destroot}${prefix}/share/AAVMF/AAVMF_VARS.secboot.fd
+    system -W ${destroot}${prefix}/share/AAVMF \
+        "${prefix}/bin/qemu-img convert -f raw -O qcow2 AAVMF_VARS.fd AAVMF_VARS.qcow2"
+    system -W ${destroot}${prefix}/share/AAVMF \
+        "${prefix}/bin/qemu-img convert -f raw -O qcow2 AAVMF_VARS.secboot.fd AAVMF_VARS.secboot.qcow2"
+
+    foreach path [glob -nocomplain ${worksrcpath}/macports-firmware/*.json] {
+        file copy -force ${path} ${destroot}${prefix}/share/qemu/firmware/
+    }
+}
+
+livecheck.type          none
