@@ -15,11 +15,11 @@ legacysupport.newest_darwin_requires_legacy 12
 
 # Remember to update libvirt and py-libvirt at the same time.
 name                libvirt
-version             11.6.0
+version             12.3.0
 revision            0
-checksums           rmd160  2773142d413acd7a3ee09073927e4f5cb455e1bf \
-                    sha256  cc0e8c226559b479833c8bc9c77a8ec301482ab0305fcd98d27f11cc6877fd23 \
-                    size    9960064
+checksums           rmd160  dcd4e4cf3bfa988976cfa0e1197d10467622e336 \
+                    sha256  0d2b548d1b732d1ae21cfefacc204a2c8dabada80ea1edfbd528bfb73b9d2d27 \
+                    size    10490580
 
 categories          sysutils
 license             LGPL-2.1+
