@@ -1,0 +1,181 @@
+diff --git a/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.c b/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.c
+index 9ae83d9a98..3d13ee614d 100644
+--- a/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.c
++++ b/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.c
+@@ -11,11 +11,46 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
+ #include <PiDxe.h>
+ #include <Library/PeCoffLib.h>
+ 
+-#include <Library/BaseLib.h>
+-#include <Library/DebugLib.h>
+-#include <Library/BaseMemoryLib.h>
+-#include <Library/PeCoffExtraActionLib.h>
+-#include <Library/PrintLib.h>
++#include <Library/BaseLib.h>
++#include <Library/DebugLib.h>
++#include <Library/BaseMemoryLib.h>
++#include <Library/PeCoffExtraActionLib.h>
++#include <Library/PrintLib.h>
++
++#ifndef EDK2_DEBUG_PREFIX
++#define EDK2_DEBUG_PREFIX  ""
++#endif
++
++STATIC
++CONST CHAR8 *
++MapDebugPath (
++  IN CONST CHAR8  *PdbPointer
++  )
++{
++  STATIC CHAR8  MappedPath[1024];
++  CONST CHAR8   *BuildPath;
++  UINTN         PrefixLen;
++  UINTN         SuffixLen;
++
++  if ((PdbPointer == NULL) || (EDK2_DEBUG_PREFIX[0] == '\0')) {
++    return PdbPointer;
++  }
++
++  BuildPath = AsciiStrStr (PdbPointer, "/Build/");
++  if (BuildPath == NULL) {
++    return PdbPointer;
++  }
++
++  PrefixLen = AsciiStrLen (EDK2_DEBUG_PREFIX);
++  SuffixLen = AsciiStrLen (BuildPath);
++  if ((PrefixLen + SuffixLen + 1) > sizeof (MappedPath)) {
++    return PdbPointer;
++  }
++
++  CopyMem (MappedPath, EDK2_DEBUG_PREFIX, PrefixLen);
++  CopyMem (MappedPath + PrefixLen, BuildPath, SuffixLen + 1);
++  return MappedPath;
++}
+ 
+ /**
+   Performs additional actions after a PE/COFF image has been loaded and relocated.
+@@ -34,12 +69,12 @@ PeCoffLoaderRelocateImageExtraAction (
+ {
+  #ifdef __GNUC__
+   if (ImageContext->PdbPointer) {
+-    DEBUG ((
+-      DEBUG_LOAD | DEBUG_INFO,
+-      "add-symbol-file %a 0x%p\n",
+-      ImageContext->PdbPointer,
+-      (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)
+-      ));
++    DEBUG ((
++      DEBUG_LOAD | DEBUG_INFO,
++      "add-symbol-file %a 0x%p\n",
++      MapDebugPath (ImageContext->PdbPointer),
++      (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)
++      ));
+     return;
+   }
+ 
+@@ -71,12 +106,12 @@ PeCoffLoaderUnloadImageExtraAction (
+ {
+  #ifdef __GNUC__
+   if (ImageContext->PdbPointer) {
+-    DEBUG ((
+-      DEBUG_LOAD | DEBUG_INFO,
+-      "remove-symbol-file %a 0x%08x\n",
+-      ImageContext->PdbPointer,
+-      (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)
+-      ));
++    DEBUG ((
++      DEBUG_LOAD | DEBUG_INFO,
++      "remove-symbol-file %a 0x%08x\n",
++      MapDebugPath (ImageContext->PdbPointer),
++      (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)
++      ));
+     return;
+   }
+ 
+diff --git a/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.inf b/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.inf
+index 023a122c50..86bfc8eda8 100644
+--- a/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.inf
++++ b/ArmPkg/Library/DebugPeCoffExtraActionLib/DebugPeCoffExtraActionLib.inf
+@@ -29,5 +29,11 @@
+ [Packages]
+   MdePkg/MdePkg.dec
+ 
+-[LibraryClasses]
+-  DebugLib
++[LibraryClasses]
++  DebugLib
++  BaseLib
++  BaseMemoryLib
++
++[BuildOptions]
++  GCC:*_GCC_AARCH64_CC_FLAGS = -DEDK2_DEBUG_PREFIX=\"$(DEBUG_PREFIX)\"
++  CLANGDWARF:*_CLANGDWARF_AARCH64_CC_FLAGS = -DEDK2_DEBUG_PREFIX=\"$(DEBUG_PREFIX)\"
+diff --git a/ArmVirtPkg/ArmVirtQemu.dsc b/ArmVirtPkg/ArmVirtQemu.dsc
+index a38a1d8d18..41a787fbe5 100644
+--- a/ArmVirtPkg/ArmVirtQemu.dsc
++++ b/ArmVirtPkg/ArmVirtQemu.dsc
+@@ -17,7 +17,11 @@
+   PLATFORM_GUID                  = 37d7e986-f7e9-45c2-8067-e371421a626c
+   PLATFORM_VERSION               = 0.1
+   DSC_SPECIFICATION              = 0x00010005
+-  OUTPUT_DIRECTORY               = Build/ArmVirtQemu-AArch64
++!ifdef $(EDK2_OUT_DIR)
++  OUTPUT_DIRECTORY               = $(EDK2_OUT_DIR)
++!else
++  OUTPUT_DIRECTORY               = Build/ArmVirtQemu-AArch64
++!endif
+   SUPPORTED_ARCHITECTURES        = AARCH64
+   BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
+   SKUID_IDENTIFIER               = DEFAULT
+diff --git a/BaseTools/Conf/tools_def.template b/BaseTools/Conf/tools_def.template
+index 1d65eeb4c7..a4dcad99a6 100755
+--- a/BaseTools/Conf/tools_def.template
++++ b/BaseTools/Conf/tools_def.template
+@@ -942,9 +942,10 @@ NOOPT_VS2026_X64_DLINK_FLAGS    = /NOLOGO /NODEFAULTLIB /IGNORE:4001 /IGNORE:428
+ *_*_*_OBJCOPY_FLAGS             = objcopy not needed for
+ *_*_*_SYMRENAME_PATH            = echo
+ *_*_*_SYMRENAME_FLAGS           = Symbol renaming not needed for
+-DEBUG_*_*_OBJCOPY_ADDDEBUGFLAG     = --add-gnu-debuglink="$(DEBUG_DIR)/$(MODULE_NAME).debug"
+-RELEASE_*_*_OBJCOPY_ADDDEBUGFLAG   =
+-NOOPT_*_*_OBJCOPY_ADDDEBUGFLAG     = --add-gnu-debuglink="$(DEBUG_DIR)/$(MODULE_NAME).debug"
++DEFINE DEBUG_PREFIX                 = ENV(DEBUG_PREFIX)
++DEBUG_*_*_OBJCOPY_ADDDEBUGFLAG     = --add-gnu-debuglink="$(DEBUG_DIR)/$(MODULE_NAME).debug"
++RELEASE_*_*_OBJCOPY_ADDDEBUGFLAG   =
++NOOPT_*_*_OBJCOPY_ADDDEBUGFLAG     = --add-gnu-debuglink="$(DEBUG_DIR)/$(MODULE_NAME).debug"
+ *_*_*_OBJCOPY_STRIPFLAG            = --strip-unneeded -R .eh_frame
+ *_*_*_DTC_FLAGS                    = -H epapr
+ *_*_*_DTCPP_PATH                   = DEF(DTCPP_BIN)
+diff --git a/OvmfPkg/OvmfPkgX64.dsc b/OvmfPkg/OvmfPkgX64.dsc
+index 94c639be13..bddca15a77 100644
+--- a/OvmfPkg/OvmfPkgX64.dsc
++++ b/OvmfPkg/OvmfPkgX64.dsc
+@@ -19,7 +19,11 @@
+   PLATFORM_GUID                  = 5a9e7754-d81b-49ea-85ad-69eaa7b1539b
+   PLATFORM_VERSION               = 0.1
+   DSC_SPECIFICATION              = 0x00010005
+-  OUTPUT_DIRECTORY               = Build/OvmfX64
++!ifdef $(EDK2_OUT_DIR)
++  OUTPUT_DIRECTORY               = $(EDK2_OUT_DIR)
++!else
++  OUTPUT_DIRECTORY               = Build/OvmfX64
++!endif
+   SUPPORTED_ARCHITECTURES        = X64
+   BUILD_TARGETS                  = NOOPT|DEBUG|RELEASE
+   SKUID_IDENTIFIER               = DEFAULT
+diff --git a/ShellPkg/ShellPkg.dsc b/ShellPkg/ShellPkg.dsc
+index 94d95de0eb..b5a6be65a9 100644
+--- a/ShellPkg/ShellPkg.dsc
++++ b/ShellPkg/ShellPkg.dsc
+@@ -15,7 +15,11 @@
+   PLATFORM_GUID                  = E1DC9BF8-7013-4c99-9437-795DAA45F3BD
+   PLATFORM_VERSION               = 1.02
+   DSC_SPECIFICATION              = 0x00010006
+-  OUTPUT_DIRECTORY               = Build/Shell
++!ifdef $(EDK2_OUT_DIR)
++  OUTPUT_DIRECTORY               = $(EDK2_OUT_DIR)
++!else
++  OUTPUT_DIRECTORY               = Build/Shell
++!endif
+   SUPPORTED_ARCHITECTURES        = IA32|X64|EBC|AARCH64|RISCV64|LOONGARCH64
+   BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
+   SKUID_IDENTIFIER               = DEFAULT

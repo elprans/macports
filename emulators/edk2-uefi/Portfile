@@ -1,0 +1,530 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem              1.0
+
+name                    edk2-uefi
+version                 202602
+revision                14
+categories              emulators
+license                 {BSD MIT}
+maintainers             nomaintainer
+supported_archs         noarch
+
+description             TianoCore EDK II UEFI firmware for QEMU virtual machines
+long_description        Source-built TianoCore EDK II firmware images for QEMU guests. \
+                        This port builds OVMF for x86_64 and ArmVirtQemu for AArch64 and \
+                        uses separately fetched distfiles for bundled upstream components \
+                        rather than git submodules.
+
+homepage                https://github.com/tianocore/edk2
+dist_subdir             ${name}
+
+set edk2_tag            edk2-stable${version}
+set brotli_sha          e230f474b87134e8c6c85b630084c612057f253e
+set libfdt_sha          cfff805481bdea27f900c32698171286542b8d3c
+set libspdm_sha         1be116c7b7713fa9003e1bd53b53a34758549eb9
+set mbedtls_sha         e185d7fd85499c8ce5ca2a54f5cf8fe7dbe3f8df
+set mipi_syst_sha       370b5944c046bab043dd8b133727b2135af7747a
+set openssl_version     3.5.1
+set sbo_version         1.6.3
+set edk2_debug_root     ${prefix}/lib/debug/${name}
+
+master_sites            https://github.com/tianocore/edk2/archive/refs/tags/:edk2 \
+                        https://github.com/google/brotli/archive/:brotli \
+                        https://github.com/devicetree-org/pylibfdt/archive/:pylibfdt \
+                        https://github.com/DMTF/libspdm/archive/:libspdm \
+                        https://github.com/Mbed-TLS/mbedtls/archive/:mbedtls \
+                        https://github.com/MIPI-Alliance/public-mipi-sys-t/archive/:mipisyst \
+                        https://github.com/openssl/openssl/releases/download/openssl-${openssl_version}/:openssl
+master_sites-append     https://github.com/microsoft/secureboot_objects/raw/refs/tags/v${sbo_version}/PostSignedObjects/DBX/amd64/DBXUpdate.bin?dummy=:dbx_amd64 \
+                        https://github.com/microsoft/secureboot_objects/raw/refs/tags/v${sbo_version}/PostSignedObjects/DBX/arm64/DBXUpdate.bin?dummy=:dbx_arm64
+
+distfiles               ${edk2_tag}.tar.gz:edk2 \
+                        ${brotli_sha}.tar.gz:brotli \
+                        ${libfdt_sha}.tar.gz:pylibfdt \
+                        ${libspdm_sha}.tar.gz:libspdm \
+                        ${mbedtls_sha}.tar.gz:mbedtls \
+                        ${mipi_syst_sha}.tar.gz:mipisyst \
+                        openssl-${openssl_version}.tar.gz:openssl
+distfiles-append        amd64-DBXUpdate-v${sbo_version}.bin:dbx_amd64 \
+                        arm64-DBXUpdate-v${sbo_version}.bin:dbx_arm64
+
+checksums               ${edk2_tag}.tar.gz \
+                        rmd160  4a7481f59c8f0f27724c1f43c7bf258daf3bc65b \
+                        sha256  fa466183db22969dc952dcb5517a186ad055e0b355da42799d2944120216fa7a \
+                        size    18970496 \
+                        ${brotli_sha}.tar.gz \
+                        rmd160  3251673ca66315752a6357c030f80f4b98c482c1 \
+                        sha256  a9ba3940267de5dd73581a47c2e81b3eb1e1df6a704138c599020d66f3677a92 \
+                        size    646535 \
+                        ${libfdt_sha}.tar.gz \
+                        rmd160  b456b22d720681bf7d5a420423775c99c10c9ad2 \
+                        sha256  1193910f475fde07f3cd4fe1c1a353d69b8cedb574967134838fcdc8208d224e \
+                        size    49659 \
+                        ${libspdm_sha}.tar.gz \
+                        rmd160  017297873ef49cfe553c76cfd28eb9fc6a31e9f1 \
+                        sha256  59275edc6fb56c629305e6f01fe173ddf9f065cde995f18b89a64e128eae8604 \
+                        size    2050057 \
+                        ${mbedtls_sha}.tar.gz \
+                        rmd160  ad4b7903b099f283bf286e50490b612d6c0690d6 \
+                        sha256  052dccf3a404dce25a467c6fe044b0c858d609ace8e883b59e9dfd479fdd4528 \
+                        size    5673564 \
+                        ${mipi_syst_sha}.tar.gz \
+                        rmd160  3b8ccf144d2238a58d233cdaa32681e55ef645fc \
+                        sha256  9fda3b9a78343ab2be6f06ce6396536e7e065abac29b47c8eb2e42cbb4c4f00b \
+                        size    378522 \
+                        openssl-${openssl_version}.tar.gz \
+                        rmd160  5a38de494318fcb67193f62c03937ffc65156e65 \
+                        sha256  529043b15cffa5f36077a4d0af83f3de399807181d607441d734196d889b641f \
+                        size    53158817 \
+                        amd64-DBXUpdate-v${sbo_version}.bin \
+                        rmd160  58db7d303432e6c6e1438c5d733ed7d82dadd684 \
+                        sha256  74df077175dca7ff8bcd27ce8285656e38097803f803e2d124467273699e4b17 \
+                        size    24053 \
+                        arm64-DBXUpdate-v${sbo_version}.bin \
+                        rmd160  75be415807cc1ebb4956e8943f2d1c296cc99982 \
+                        sha256  ec68522271e9ac6c936c8731ce0d74417f8ed39296e85ab0e5801af195459214 \
+                        size    4613
+
+extract.mkdir           no
+worksrcdir              edk2-${edk2_tag}
+patchfiles-append       patch-edk2-macports-build-paths-and-debug-symbols.diff
+patch.pre_args          -p1
+
+depends_build-append    port:python314 \
+                        port:gmake \
+                        port:acpica \
+                        port:llvm-20 \
+                        port:clang-20 \
+                        port:qemu \
+                        path:bin/virt-fw-vars:virt-firmware
+
+if {[option configure.ccache]} {
+    depends_build-append path:bin/ccache:ccache
+}
+
+use_configure           no
+
+default_variants        +target_x86_64 +target_arm
+
+variant target_x86_64 description {Build x86_64 OVMF firmware images} {
+    depends_build-append port:nasm
+}
+
+variant target_arm description {Build AArch64 ArmVirtQemu firmware images} {
+}
+
+variant debug description {Also build separate DEBUG firmware artifacts} {
+}
+
+proc edk2_build_targets {} {
+    set targets [list RELEASE]
+    if {[variant_isset debug]} {
+        lappend targets DEBUG
+    }
+
+    return ${targets}
+}
+
+proc edk2_build_dir {target} {
+    return "${target}_CLANGDWARF"
+}
+
+proc edk2_build_tag {target} {
+    return [string tolower ${target}]
+}
+
+proc edk2_output_suffix {target} {
+    if {${target} eq "DEBUG"} {
+        return ".debug"
+    }
+
+    return ""
+}
+
+proc edk2_ovmf_out_dir {target flavor} {
+    return "Build/OvmfX64.[edk2_build_tag ${target}].${flavor}"
+}
+
+proc edk2_armvirt_out_dir {target flavor} {
+    return "Build/ArmVirtQemu-AArch64.[edk2_build_tag ${target}].${flavor}"
+}
+
+proc edk2_shell_out_dir {target} {
+    return "Build/Shell.[edk2_build_tag ${target}]"
+}
+
+proc edk2_tool_bin_dir {} {
+    if {[option configure.ccache]} {
+        return ${::workpath}/tool-bin
+    }
+
+    return ${::prefix}/libexec/llvm-20/bin
+}
+
+proc edk2_format_json_list {items indent} {
+    set lines [list "\["]
+    if {[llength ${items}] == 0} {
+        lappend lines "${indent}]"
+        return [join ${lines} "\n"]
+    }
+
+    set last_index [expr {[llength ${items}] - 1}]
+    for {set i 0} {$i <= ${last_index}} {incr i} {
+        set suffix ,
+        if {$i == ${last_index}} {
+            set suffix {}
+        }
+        lappend lines "${indent}    \"[lindex ${items} ${i}]\"${suffix}"
+    }
+    lappend lines "${indent}]"
+    return [join ${lines} "\n"]
+}
+
+proc edk2_write_qemu_firmware_spec {path description architecture machines executable nvram nvram_format features tags} {
+    set fd [open ${path} w]
+    puts ${fd} "{"
+    puts ${fd} [format {    "description": "%s",} ${description}]
+    puts ${fd} [format {    "interface-types": %s,} [edk2_format_json_list [list uefi] {    }]]
+    puts ${fd} "    \"mapping\": {"
+    puts ${fd} "        \"device\": \"flash\","
+    puts ${fd} "        \"executable\": {"
+    puts ${fd} [format {            "filename": "%s",} ${executable}]
+    puts ${fd} "            \"format\": \"raw\""
+    puts ${fd} "        },"
+    puts ${fd} "        \"nvram-template\": {"
+    puts ${fd} [format {            "filename": "%s",} ${nvram}]
+    puts ${fd} [format {            "format": "%s"} ${nvram_format}]
+    puts ${fd} "        }"
+    puts ${fd} "    },"
+    puts ${fd} "    \"targets\": \["
+    puts ${fd} "        {"
+    puts ${fd} [format {            "architecture": "%s",} ${architecture}]
+    puts ${fd} [format {            "machines": %s} [edk2_format_json_list ${machines} {            }]]
+    puts ${fd} "        }"
+    puts ${fd} "    \],"
+    puts ${fd} [format {    "features": %s,} [edk2_format_json_list ${features} {    }]]
+    puts ${fd} [format {    "tags": %s} [edk2_format_json_list ${tags} {    }]]
+    puts ${fd} "}"
+    close ${fd}
+}
+
+proc edk2_make_qcow2 {dir input output} {
+    system -W ${dir} "${::prefix}/bin/qemu-img convert -f raw -O qcow2 ${input} ${output}"
+}
+
+proc edk2_resize_image {dir format image size} {
+    system -W ${dir} "${::prefix}/bin/qemu-img resize -f ${format} ${image} ${size}"
+}
+
+proc edk2_install_debug_tree {source_root dest_root} {
+    xinstall -d ${dest_root}
+    system -W ${source_root} "/usr/bin/rsync -a --prune-empty-dirs --include='*/' --include='*.debug' --include='*.map' --exclude='*' ./ ${dest_root}/"
+}
+
+proc edk2_link_submodule {source target} {
+    catch {file delete -force ${target}}
+    file mkdir [file dirname ${target}]
+    file link -symbolic ${target} ${source}
+}
+
+proc edk2_setup_tool_bin {tool_bin_dir} {
+    if {![option configure.ccache]} {
+        return
+    }
+
+    xinstall -d ${tool_bin_dir}
+    foreach tool [list clang clang++] {
+        catch {file delete -force ${tool_bin_dir}/${tool}}
+        file link -symbolic ${tool_bin_dir}/${tool} ${::prefix}/bin/ccache
+    }
+    foreach tool [list llvm-ar llvm-objcopy] {
+        catch {file delete -force ${tool_bin_dir}/${tool}}
+        file link -symbolic ${tool_bin_dir}/${tool} ${::prefix}/libexec/llvm-20/bin/${tool}
+    }
+}
+
+extract {
+    xinstall -d ${workpath}
+
+    foreach distfile [list \
+        ${edk2_tag}.tar.gz \
+        ${brotli_sha}.tar.gz \
+        ${libfdt_sha}.tar.gz \
+        ${libspdm_sha}.tar.gz \
+        ${mbedtls_sha}.tar.gz \
+        ${mipi_syst_sha}.tar.gz \
+        openssl-${openssl_version}.tar.gz] {
+        system -W ${workpath} "/usr/bin/tar -xf ${distpath}/${distfile}"
+    }
+}
+
+post-extract {
+    edk2_link_submodule ${workpath}/brotli-${brotli_sha} \
+        ${worksrcpath}/BaseTools/Source/C/BrotliCompress/brotli
+    edk2_link_submodule ${workpath}/brotli-${brotli_sha} \
+        ${worksrcpath}/MdeModulePkg/Library/BrotliCustomDecompressLib/brotli
+    edk2_link_submodule ${workpath}/pylibfdt-${libfdt_sha} \
+        ${worksrcpath}/MdePkg/Library/BaseFdtLib/libfdt
+    edk2_link_submodule ${workpath}/libspdm-${libspdm_sha} \
+        ${worksrcpath}/SecurityPkg/DeviceSecurity/SpdmLib/libspdm
+    edk2_link_submodule ${workpath}/mbedtls-${mbedtls_sha} \
+        ${worksrcpath}/CryptoPkg/Library/MbedTlsLib/mbedtls
+    edk2_link_submodule ${workpath}/public-mipi-sys-t-${mipi_syst_sha} \
+        ${worksrcpath}/MdePkg/Library/MipiSysTLib/mipisyst
+    edk2_link_submodule ${workpath}/openssl-${openssl_version} \
+        ${worksrcpath}/CryptoPkg/Library/OpensslLib/openssl
+}
+
+pre-build {
+    if {![variant_isset target_x86_64] && ![variant_isset target_arm]} {
+        error "At least one of +target_x86_64 or +target_arm must be selected"
+    }
+}
+
+build {
+    # stable202602 only defines XCODE5 for IA32/X64, so keep firmware builds
+    # on CLANGDWARF to retain AARCH64 support on macOS.
+    set tool_bin_dir [edk2_tool_bin_dir]
+    edk2_setup_tool_bin ${tool_bin_dir}
+
+    set env(PATH) "${tool_bin_dir}:${prefix}/libexec/llvm-20/bin:${prefix}/bin:$env(PATH)"
+    set env(PYTHON_COMMAND) "${prefix}/bin/python3.14"
+    set env(IASL_PREFIX) "${prefix}/bin/"
+    set env(CLANG_HOST_BIN) "${prefix}/bin/g"
+    set env(CLANG_BIN) "${tool_bin_dir}/"
+    set env(CLANGDWARF_BIN) "${tool_bin_dir}/"
+    set env(NASM_PREFIX) "${prefix}/bin/"
+    set env(DEBUG_PREFIX) ${edk2_debug_root}
+
+    if {[option configure.ccache]} {
+        set env(CCACHE_DIR) ${ccache_dir}
+        set env(CCACHE_PATH) "${prefix}/libexec/llvm-20/bin:${prefix}/bin:/usr/bin:/bin"
+    }
+
+    set host_sdkroot ${configure.sdkroot}
+    if {${host_sdkroot} eq ""} {
+        set host_sdkroot [exec /usr/bin/xcrun --sdk macosx --show-sdk-path]
+    }
+
+    system -W ${worksrcpath} \
+        "SDKROOT=${host_sdkroot} gmake -C BaseTools CC='${tool_bin_dir}/clang -isysroot ${host_sdkroot}' CXX='${tool_bin_dir}/clang++ -isysroot ${host_sdkroot}'"
+
+    if {[variant_isset target_x86_64]} {
+        foreach build_target [edk2_build_targets] {
+            set build_dir [edk2_build_dir ${build_target}]
+            set plain_out_dir [edk2_ovmf_out_dir ${build_target} plain]
+            set secboot_out_dir [edk2_ovmf_out_dir ${build_target} secboot]
+            set shell_out_dir [edk2_shell_out_dir ${build_target}]
+            set common_args "-t CLANGDWARF -b ${build_target} -a X64 -D BUILD_SHELL=FALSE -D FD_SIZE_4MB -D NETWORK_HTTP_BOOT_ENABLE -D NETWORK_IP6_ENABLE -D NETWORK_TLS_ENABLE -D TPM1_ENABLE -D TPM2_ENABLE -D TPM2_CONFIG_ENABLE"
+
+            system -W ${worksrcpath} \
+                "/bin/bash -lc '. ./edksetup.sh && build ${common_args} -D EDK2_OUT_DIR=${plain_out_dir} -p OvmfPkg/OvmfPkgX64.dsc'"
+
+            system -W ${worksrcpath} \
+                "/bin/bash -lc '. ./edksetup.sh && build ${common_args} -D EDK2_OUT_DIR=${secboot_out_dir} -D SECURE_BOOT_ENABLE -D SMM_REQUIRE -p OvmfPkg/OvmfPkgX64.dsc'"
+            system -W ${worksrcpath} \
+                "virt-fw-vars --secure-boot --enroll-redhat --set-dbx ${distpath}/amd64-DBXUpdate-v${sbo_version}.bin --inplace ${worksrcpath}/${secboot_out_dir}/${build_dir}/FV/OVMF_VARS.fd"
+
+            system -W ${worksrcpath} \
+                "/bin/bash -lc '. ./edksetup.sh && build -t CLANGDWARF -b ${build_target} -a X64 -D EDK2_OUT_DIR=${shell_out_dir} -p ShellPkg/ShellPkg.dsc'"
+        }
+    }
+
+    if {[variant_isset target_arm]} {
+        foreach build_target [edk2_build_targets] {
+            set build_dir [edk2_build_dir ${build_target}]
+            set plain_out_dir [edk2_armvirt_out_dir ${build_target} plain]
+            set secboot_out_dir [edk2_armvirt_out_dir ${build_target} secboot_INSECURE]
+            set shell_out_dir [edk2_shell_out_dir ${build_target}]
+            set common_args "-t CLANGDWARF -b ${build_target} -a AARCH64 -D BUILD_SHELL=FALSE -D NETWORK_HTTP_BOOT_ENABLE -D NETWORK_IP6_ENABLE -D NETWORK_TLS_ENABLE -D TPM2_ENABLE -D TPM2_CONFIG_ENABLE"
+
+            system -W ${worksrcpath} \
+                "/bin/bash -lc '. ./edksetup.sh && build ${common_args} -D EDK2_OUT_DIR=${plain_out_dir} -p ArmVirtPkg/ArmVirtQemu.dsc'"
+
+            system -W ${worksrcpath} \
+                "/bin/bash -lc '. ./edksetup.sh && build ${common_args} -D EDK2_OUT_DIR=${secboot_out_dir} -D SECURE_BOOT_ENABLE -p ArmVirtPkg/ArmVirtQemu.dsc'"
+            system -W ${worksrcpath} \
+                "virt-fw-vars --secure-boot --enroll-redhat --set-dbx ${distpath}/arm64-DBXUpdate-v${sbo_version}.bin --inplace ${worksrcpath}/${secboot_out_dir}/${build_dir}/FV/QEMU_VARS.fd"
+
+            system -W ${worksrcpath} \
+                "/bin/bash -lc '. ./edksetup.sh && build -t CLANGDWARF -b ${build_target} -a AARCH64 -D EDK2_OUT_DIR=${shell_out_dir} -p ShellPkg/ShellPkg.dsc'"
+        }
+    }
+}
+
+destroot {
+    set firmware_dir ${destroot}${prefix}/share/edk2-uefi
+    set qemu_firmware_dir ${destroot}${prefix}/share/qemu/firmware
+
+    xinstall -d ${firmware_dir}
+    xinstall -d ${qemu_firmware_dir}
+
+    if {[variant_isset target_x86_64]} {
+        set x64_dir ${firmware_dir}/OvmfX64
+        xinstall -d ${x64_dir}
+
+        foreach build_target [edk2_build_targets] {
+            set build_dir [edk2_build_dir ${build_target}]
+            set plain_out_dir [edk2_ovmf_out_dir ${build_target} plain]
+            set secboot_out_dir [edk2_ovmf_out_dir ${build_target} secboot]
+            set shell_out_dir [edk2_shell_out_dir ${build_target}]
+            set output_suffix [edk2_output_suffix ${build_target}]
+
+            file copy -force \
+                ${worksrcpath}/${plain_out_dir}/${build_dir}/FV/OVMF_CODE.fd \
+                ${x64_dir}/OVMF_CODE${output_suffix}.fd
+            file copy -force \
+                ${worksrcpath}/${plain_out_dir}/${build_dir}/FV/OVMF_VARS.fd \
+                ${x64_dir}/OVMF_VARS${output_suffix}.fd
+            edk2_make_qcow2 ${x64_dir} \
+                OVMF_VARS${output_suffix}.fd \
+                OVMF_VARS${output_suffix}.qcow2
+            file copy -force \
+                ${worksrcpath}/${secboot_out_dir}/${build_dir}/FV/OVMF_CODE.fd \
+                ${x64_dir}/OVMF_CODE${output_suffix}.secboot.fd
+            file copy -force \
+                ${worksrcpath}/${secboot_out_dir}/${build_dir}/FV/OVMF_VARS.fd \
+                ${x64_dir}/OVMF_VARS${output_suffix}.secboot.fd
+            edk2_make_qcow2 ${x64_dir} \
+                OVMF_VARS${output_suffix}.secboot.fd \
+                OVMF_VARS${output_suffix}.secboot.qcow2
+            file copy -force \
+                ${worksrcpath}/${shell_out_dir}/${build_dir}/X64/Shell_EA4BB293-2D7F-4456-A681-1F22F42CD0BC.efi \
+                ${x64_dir}/Shell_X64${output_suffix}.efi
+
+            if {${build_target} eq "DEBUG"} {
+                edk2_install_debug_tree \
+                    ${worksrcpath}/${plain_out_dir} \
+                    ${destroot}${edk2_debug_root}/${plain_out_dir}
+                edk2_install_debug_tree \
+                    ${worksrcpath}/${secboot_out_dir} \
+                    ${destroot}${edk2_debug_root}/${secboot_out_dir}
+                edk2_install_debug_tree \
+                    ${worksrcpath}/${shell_out_dir} \
+                    ${destroot}${edk2_debug_root}/${shell_out_dir}
+            }
+
+            set descriptor_tags {}
+            set descriptor_prefix 60
+            if {${build_target} eq "DEBUG"} {
+                set descriptor_tags [list debug]
+                set descriptor_prefix 80
+            }
+
+            edk2_write_qemu_firmware_spec \
+                ${qemu_firmware_dir}/${descriptor_prefix}-edk2-uefi-x86_64${output_suffix}.json \
+                "UEFI firmware for x86_64${output_suffix}" \
+                x86_64 \
+                [list pc-i440fx-* pc-q35-*] \
+                ${prefix}/share/edk2-uefi/OvmfX64/OVMF_CODE${output_suffix}.fd \
+                ${prefix}/share/edk2-uefi/OvmfX64/OVMF_VARS${output_suffix}.qcow2 \
+                qcow2 \
+                [list verbose-static] \
+                ${descriptor_tags}
+
+            set secure_prefix 40
+            if {${build_target} eq "DEBUG"} {
+                set secure_prefix 70
+            }
+
+            edk2_write_qemu_firmware_spec \
+                ${qemu_firmware_dir}/${secure_prefix}-edk2-uefi-x86_64${output_suffix}-secure-enrolled.json \
+                "UEFI firmware for x86_64${output_suffix}, with Secure Boot, SMM, enrolled keys" \
+                x86_64 \
+                [list pc-q35-*] \
+                ${prefix}/share/edk2-uefi/OvmfX64/OVMF_CODE${output_suffix}.secboot.fd \
+                ${prefix}/share/edk2-uefi/OvmfX64/OVMF_VARS${output_suffix}.secboot.qcow2 \
+                qcow2 \
+                [list enrolled-keys requires-smm secure-boot verbose-static] \
+                ${descriptor_tags}
+        }
+    }
+
+    if {[variant_isset target_arm]} {
+        set arm_dir ${firmware_dir}/ArmVirtQemu-AArch64
+        xinstall -d ${arm_dir}
+
+        foreach build_target [edk2_build_targets] {
+            set build_dir [edk2_build_dir ${build_target}]
+            set plain_out_dir [edk2_armvirt_out_dir ${build_target} plain]
+            set secboot_out_dir [edk2_armvirt_out_dir ${build_target} secboot_INSECURE]
+            set shell_out_dir [edk2_shell_out_dir ${build_target}]
+            set output_suffix [edk2_output_suffix ${build_target}]
+
+            file copy -force \
+                ${worksrcpath}/${plain_out_dir}/${build_dir}/FV/QEMU_EFI.fd \
+                ${arm_dir}/QEMU_EFI${output_suffix}.fd
+            edk2_resize_image ${arm_dir} raw QEMU_EFI${output_suffix}.fd 64M
+            file copy -force \
+                ${worksrcpath}/${plain_out_dir}/${build_dir}/FV/QEMU_VARS.fd \
+                ${arm_dir}/QEMU_VARS${output_suffix}.fd
+            edk2_resize_image ${arm_dir} raw QEMU_VARS${output_suffix}.fd 64M
+            edk2_make_qcow2 ${arm_dir} \
+                QEMU_VARS${output_suffix}.fd \
+                QEMU_VARS${output_suffix}.qcow2
+            file copy -force \
+                ${worksrcpath}/${secboot_out_dir}/${build_dir}/FV/QEMU_EFI.fd \
+                ${arm_dir}/QEMU_EFI${output_suffix}.secboot_INSECURE.fd
+            edk2_resize_image ${arm_dir} raw QEMU_EFI${output_suffix}.secboot_INSECURE.fd 64M
+            file copy -force \
+                ${worksrcpath}/${secboot_out_dir}/${build_dir}/FV/QEMU_VARS.fd \
+                ${arm_dir}/QEMU_VARS${output_suffix}.secboot_INSECURE.fd
+            edk2_resize_image ${arm_dir} raw QEMU_VARS${output_suffix}.secboot_INSECURE.fd 64M
+            edk2_make_qcow2 ${arm_dir} \
+                QEMU_VARS${output_suffix}.secboot_INSECURE.fd \
+                QEMU_VARS${output_suffix}.secboot_INSECURE.qcow2
+            file copy -force \
+                ${worksrcpath}/${shell_out_dir}/${build_dir}/AARCH64/Shell_EA4BB293-2D7F-4456-A681-1F22F42CD0BC.efi \
+                ${arm_dir}/Shell_AARCH64${output_suffix}.efi
+
+            if {${build_target} eq "DEBUG"} {
+                edk2_install_debug_tree \
+                    ${worksrcpath}/${plain_out_dir} \
+                    ${destroot}${edk2_debug_root}/${plain_out_dir}
+                edk2_install_debug_tree \
+                    ${worksrcpath}/${secboot_out_dir} \
+                    ${destroot}${edk2_debug_root}/${secboot_out_dir}
+                edk2_install_debug_tree \
+                    ${worksrcpath}/${shell_out_dir} \
+                    ${destroot}${edk2_debug_root}/${shell_out_dir}
+            }
+
+            set descriptor_tags {}
+            set descriptor_prefix 60
+            if {${build_target} eq "DEBUG"} {
+                set descriptor_tags [list debug]
+                set descriptor_prefix 80
+            }
+
+            edk2_write_qemu_firmware_spec \
+                ${qemu_firmware_dir}/${descriptor_prefix}-edk2-uefi-aarch64${output_suffix}.json \
+                "UEFI firmware for aarch64${output_suffix}" \
+                aarch64 \
+                [list virt-*] \
+                ${prefix}/share/edk2-uefi/ArmVirtQemu-AArch64/QEMU_EFI${output_suffix}.fd \
+                ${prefix}/share/edk2-uefi/ArmVirtQemu-AArch64/QEMU_VARS${output_suffix}.qcow2 \
+                qcow2 \
+                [list verbose-static] \
+                ${descriptor_tags}
+
+            set secure_prefix 40
+            if {${build_target} eq "DEBUG"} {
+                set secure_prefix 70
+            }
+
+            edk2_write_qemu_firmware_spec \
+                ${qemu_firmware_dir}/${secure_prefix}-edk2-uefi-aarch64${output_suffix}-secure-enrolled.json \
+                "UEFI firmware for aarch64${output_suffix}, with Secure Boot, enrolled keys, insecure varstore" \
+                aarch64 \
+                [list virt-*] \
+                ${prefix}/share/edk2-uefi/ArmVirtQemu-AArch64/QEMU_EFI${output_suffix}.secboot_INSECURE.fd \
+                ${prefix}/share/edk2-uefi/ArmVirtQemu-AArch64/QEMU_VARS${output_suffix}.secboot_INSECURE.qcow2 \
+                qcow2 \
+                [list enrolled-keys secure-boot verbose-static] \
+                ${descriptor_tags}
+        }
+    }
+}
+
+livecheck.type          none

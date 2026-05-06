@@ -1,0 +1,12 @@
+--- accel/hvf/hvf-all.c.orig
++++ accel/hvf/hvf-all.c
+@@ -120,6 +120,9 @@ static void hvf_set_phys_mem(MemoryRegionSection *section, bool add)
+     if (!add) {
+         trace_hvf_vm_unmap(gpa, size);
+         ret = hv_vm_unmap(gpa, size);
++        if (ret == HV_BAD_ARGUMENT) {
++            return;
++        }
+         assert_hvf_ok(ret);
+         return;
+     }

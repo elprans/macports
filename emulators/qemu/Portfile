@@ -8,8 +8,8 @@ PortGroup               legacysupport   1.1
 legacysupport.newest_darwin_requires_legacy 16
 
 name                    qemu
-version                 11.0.0
-revision                2
+version                 11.1.0
+revision                1
 categories              emulators
 license                 GPL-2+
 maintainers             {raimue @raimue} \
@@ -23,12 +23,15 @@ long_description        QEMU is a generic and open source machine emulator. \
                         achieves very good performance.
 
 homepage                https://www.qemu.org
-master_sites            https://download.qemu.org/
-use_xz                  yes
+set commit              a85c588d07f8d3345ccad38b22026569a04571d1
+master_sites            https://gitlab.com/qemu-project/qemu/-/archive/${commit}/
+distname                qemu-${commit}
+distfiles               ${distname}.tar.gz
+worksrcdir              ${distname}
 
-checksums               rmd160  18cfdd45bdaba2516b9ca4d83a145475b6b2f27b \
-                        sha256  c04ca36012653f32d11c674d370cf52a710e7d3f18c2d8b63e4932052a4854d6 \
-                        size    141387580
+checksums               rmd160  ffa3dc64632fefe727375ca567ad5941a4442037 \
+                        sha256  eaa2550f9070e7438470e7f0fb330420f9e63e9102c7d2c32f4c5f2ff24ac24c \
+                        size    41320467
 
 set py_branch           3.14
 set py_version          [string replace ${py_branch} 1 1]
@@ -71,11 +74,8 @@ patchfiles-append       patch-qemu-include-qemu-madvise_h.diff
 # MAP_JIT workaround
 patchfiles-append       patch-qemu-tcg-region.diff
 
-# Backport fix for restoring internal snapshots with arm64 HVF
-patchfiles-append       patch-qemu-target-arm-hvf.diff
-
-# Backport fix for PMU clear register handling with arm64 HVF
-patchfiles-append       patch-qemu-target-arm-hvf-pmu.diff
+# HVF sysbus MMIO unmap workaround
+patchfiles-append       patch-qemu-accel-hvf-hvf-all.diff
 
 # hfscompression workaround
 patchfiles-append       patch-qemu-block-file-posix.diff
@@ -309,6 +309,4 @@ platform darwin 8 {
     build.cmd ${prefix}/bin/gmake
 }
 
-livecheck.type  regex
-livecheck.url   [lindex ${master_sites} 0]
-livecheck.regex ${name}-(\\d+(?:\\.\\d+)*)(?:-\\d+)*\\.tar
+livecheck.type  none

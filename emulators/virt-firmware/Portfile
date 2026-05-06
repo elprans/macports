@@ -1,0 +1,31 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           python 1.0
+
+name                virt-firmware
+version             26.2
+revision            0
+categories          emulators python
+supported_archs     noarch
+license             GPL-2
+maintainers         nomaintainer
+
+description         Tools for virtual machine firmware volumes
+long_description    Small utilities for OVMF and ArmVirt firmware volumes, \
+                    including `virt-fw-vars` for editing and enrolling Secure \
+                    Boot variables in EDK2 varstores.
+
+homepage            https://gitlab.com/kraxel/virt-firmware
+
+python.default_version 314
+distname            virt_firmware-${version}
+
+checksums           rmd160  76a31d2b0db9d01e506bd619d2017f3163218b4c \
+                    sha256  920655632768cb7b8c729b796a3e94486e05d60f8f676ab3efcc698ea9a2d47e \
+                    size    143457
+
+depends_lib-append  port:py${python.version}-cryptography \
+                    port:py${python.version}-pefile
+
+livecheck.type      none
