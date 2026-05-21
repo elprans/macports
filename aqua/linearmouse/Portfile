@@ -1,0 +1,58 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+name                linearmouse
+version             0.11.2
+revision            0
+
+categories          aqua sysutils
+platforms           {darwin >= 19}
+supported_archs     x86_64 arm64
+installs_libs       no
+license             MIT
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+
+description         Mouse and trackpad utility for macOS
+long_description    LinearMouse is a mouse and trackpad utility for macOS \
+                    that can customize scrolling, pointer speed, button \
+                    mappings, and other device behavior.
+
+homepage            https://linearmouse.org/
+master_sites        https://dl.linearmouse.org/v${version}/
+distname            LinearMouse
+extract.suffix      .dmg
+dist_subdir         ${name}
+
+checksums           rmd160  5d896460489f66b374095e823a1c35a3c522df50 \
+                    sha256  f7fa320b8f74e3cd293e29ae469e6899419d1edb9e7e40141fbdc7e3ecfa44a7 \
+                    size    3871920
+
+extract.mkdir       yes
+extract.only
+
+post-extract {
+    set mountpoint ${workpath}/mount
+
+    file mkdir ${mountpoint}
+    system "/usr/bin/hdiutil attach -quiet [shellescape ${distpath}/${distfiles}] \
+        -mountpoint [shellescape ${mountpoint}] -private -nobrowse \
+        -noautoopen -readonly"
+    copy ${mountpoint}/LinearMouse.app ${worksrcpath}
+    system "/usr/bin/hdiutil detach -quiet [shellescape ${mountpoint}]"
+    file delete -force ${mountpoint}
+}
+
+use_configure       no
+
+build {}
+
+destroot {
+    xinstall -d ${destroot}${applications_dir}
+    copy ${worksrcpath}/LinearMouse.app ${destroot}${applications_dir}
+}
+
+livecheck.type      regex
+livecheck.url       https://linearmouse.app/appcast.xml
+livecheck.regex     {<sparkle:version>([0-9.]+)</sparkle:version>}
