@@ -1,0 +1,54 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+
+name                notion-cli
+version             0.14.1
+revision            0
+
+categories          devel
+platforms           {darwin >= 19}
+supported_archs     x86_64 arm64
+universal_variant   no
+installs_libs       no
+license             MIT
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+
+description         Command-line interface for Notion
+long_description    The Notion CLI provides the ntn command for authenticating \
+                    with Notion, working with Notion Workers, and making \
+                    Notion API requests from the terminal.
+
+homepage            https://www.notion.com/product/dev
+master_sites        https://ntn.dev/releases/v${version}/
+
+if {${build_arch} eq "arm64"} {
+    set ntn_arch    aarch64
+    checksums       rmd160  7a715689d2ff790a5f5733b017a8197375756f9a \
+                    sha256  458eb3a7e50b26e2a45e60475902210e54b14812e23c64142489409dd2966c32 \
+                    size    4071151
+} else {
+    set ntn_arch    x86_64
+    checksums       rmd160  5e130bdcc5958941fbeed08c573a9fb5063106b0 \
+                    sha256  3bc751cc9cc42e1dfceb927bd6debf800ef671c98d6deee264f48f9ac6979702 \
+                    size    4369012
+}
+
+distname            ntn-${ntn_arch}-apple-darwin
+dist_subdir         ${name}
+
+use_configure       no
+build {}
+
+destroot {
+    xinstall -m 0755 ${worksrcpath}/ntn ${destroot}${prefix}/bin/
+
+    set docdir ${prefix}/share/doc/${name}
+    xinstall -d ${destroot}${docdir}
+    xinstall -m 0644 -W ${worksrcpath} LICENSE.md README.md ${destroot}${docdir}
+}
+
+livecheck.type      regex
+livecheck.url       https://ntn.dev/latest.txt
+livecheck.regex     {^v?(\d+(?:\.\d+)+)$}
