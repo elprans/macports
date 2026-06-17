@@ -1,0 +1,54 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           github 1.0
+
+github.setup        antirez ds4 20260616
+github.tarball_from archive
+revision            0
+
+set commit          cafc134f78a5a1890d98808d3102f4313573a1bc
+git.branch          ${commit}
+
+categories          llm
+platforms           {darwin any >= 22}
+maintainers         openmaintainer
+license             MIT
+supported_archs     arm64
+
+description         DeepSeek V4 native inference engine
+long_description    DwarfStar is a small native inference engine optimized for \
+                    DeepSeek V4 Flash, with a Metal backend, HTTP API, CLI, \
+                    benchmark and evaluation tools, and an integrated coding \
+                    agent.
+
+homepage            https://github.com/antirez/ds4
+
+checksums           rmd160  6a3430df1b1cfb6760866c8583604030ebf86dfe \
+                    sha256  f10be045871a9af50169d94cc43139695ae2ac00b9e50b38fb532e825ef0d056 \
+                    size    5445046
+
+use_configure       no
+
+build.args          CC=${configure.cc} \
+                    NATIVE_CPU_FLAG=
+
+destroot {
+    xinstall -m 0755 -W ${worksrcpath} \
+        ds4 \
+        ds4-agent \
+        ds4-bench \
+        ds4-eval \
+        ds4-server \
+        ${destroot}${prefix}/bin/
+
+    set docdir ${prefix}/share/doc/${name}
+    xinstall -d ${destroot}${docdir}
+    xinstall -m 0644 -W ${worksrcpath} \
+        LICENSE \
+        README.md \
+        MODEL_CARD.md \
+        ${destroot}${docdir}/
+}
+
+livecheck.type      none
