@@ -1,0 +1,279 @@
+diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
+index 3d8086c27b..15ab8fa672 100644
+--- a/codex-rs/Cargo.lock
++++ b/codex-rs/Cargo.lock
+@@ -3387,6 +3387,7 @@ version = "0.0.0"
+ dependencies = [
+  "codex-api",
+  "codex-app-server-protocol",
++ "codex-keyring-store",
+  "codex-protocol",
+  "codex-utils-absolute-path",
+  "http 1.4.0",
+diff --git a/codex-rs/analytics/src/facts.rs b/codex-rs/analytics/src/facts.rs
+index a035bc98b9..689000a218 100644
+--- a/codex-rs/analytics/src/facts.rs
++++ b/codex-rs/analytics/src/facts.rs
+@@ -174,6 +174,7 @@ pub(crate) enum CodexErrKind {
+     LandlockPathFd,
+     TokioJoin,
+     EnvVar,
++    KeyringRecord,
+ }
+ 
+ #[derive(Clone)]
+@@ -234,6 +235,7 @@ impl From<&CodexErr> for CodexErrKind {
+             CodexErr::LandlockPathFd(_) => CodexErrKind::LandlockPathFd,
+             CodexErr::TokioJoin(_) => CodexErrKind::TokioJoin,
+             CodexErr::EnvVar(_) => CodexErrKind::EnvVar,
++            CodexErr::KeyringRecord(_) => CodexErrKind::KeyringRecord,
+         }
+     }
+ }
+diff --git a/codex-rs/model-provider-info/Cargo.toml b/codex-rs/model-provider-info/Cargo.toml
+index 23c1b3415b..ce7ab5230e 100644
+--- a/codex-rs/model-provider-info/Cargo.toml
++++ b/codex-rs/model-provider-info/Cargo.toml
+@@ -15,6 +15,7 @@ workspace = true
+ [dependencies]
+ codex-api = { workspace = true }
+ codex-app-server-protocol = { workspace = true }
++codex-keyring-store = { workspace = true }
+ codex-protocol = { workspace = true }
+ http = { workspace = true }
+ schemars = { workspace = true }
+diff --git a/codex-rs/model-provider-info/src/lib.rs b/codex-rs/model-provider-info/src/lib.rs
+index 5f0f840508..dd15defc47 100644
+--- a/codex-rs/model-provider-info/src/lib.rs
++++ b/codex-rs/model-provider-info/src/lib.rs
+@@ -9,9 +9,12 @@ use codex_api::Provider as ApiProvider;
+ use codex_api::RetryConfig as ApiRetryConfig;
+ use codex_api::is_azure_responses_provider;
+ use codex_app_server_protocol::AuthMode;
++use codex_keyring_store::DefaultKeyringStore;
++use codex_keyring_store::KeyringStore;
+ use codex_protocol::config_types::ModelProviderAuthInfo;
+ use codex_protocol::error::CodexErr;
+ use codex_protocol::error::EnvVarError;
++use codex_protocol::error::KeyringRecordError;
+ use codex_protocol::error::Result as CodexResult;
+ use http::HeaderMap;
+ use http::header::HeaderName;
+@@ -26,6 +29,8 @@ use std::time::Duration;
+ const DEFAULT_STREAM_IDLE_TIMEOUT_MS: u64 = 300_000;
+ const DEFAULT_STREAM_MAX_RETRIES: u64 = 5;
+ const DEFAULT_REQUEST_MAX_RETRIES: u64 = 4;
++const MODEL_PROVIDER_KEYRING_ENABLE_ENV_VAR: &str = "CODEX_ENABLE_PROVIDER_KEYRING";
++const MODEL_PROVIDER_KEYRING_SERVICE: &str = "Codex Model Providers";
+ pub const DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS: u64 = 15_000;
+ /// Hard cap for user-configured `stream_max_retries`.
+ const MAX_STREAM_MAX_RETRIES: u64 = 100;
+@@ -272,25 +277,72 @@ impl ModelProviderInfo {
+         })
+     }
+ 
+-    /// If `env_key` is Some, returns the API key for this provider if present
+-    /// (and non-empty) in the environment. If `env_key` is required but
+-    /// cannot be found, returns an error.
++    /// If `env_key` is configured, returns the API key for this provider.
++    /// Empty values are treated as missing. When
++    /// `CODEX_ENABLE_PROVIDER_KEYRING` is truthy, Codex falls back to the OS
++    /// keyring using a fixed service name and the `env_key` value as the
++    /// account name.
+     pub fn api_key(&self) -> CodexResult<Option<String>> {
+-        match &self.env_key {
+-            Some(env_key) => {
+-                let api_key = std::env::var(env_key)
+-                    .ok()
+-                    .filter(|v| !v.trim().is_empty())
+-                    .ok_or_else(|| {
++        let Some(env_key) = &self.env_key else {
++            return Ok(None);
++        };
++
++        if let Ok(api_key) = std::env::var(env_key)
++            && !api_key.trim().is_empty()
++        {
++            return Ok(Some(api_key));
++        }
++
++        let keyring_enabled = std::env::var(MODEL_PROVIDER_KEYRING_ENABLE_ENV_VAR)
++            .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
++            .unwrap_or(false);
++
++        if keyring_enabled {
++            return self
++                .keyring_api_key(&DefaultKeyringStore, env_key)
++                .map_err(|err| match err {
++                    CodexErr::KeyringRecord(KeyringRecordError { cause: None, .. }) => {
+                         CodexErr::EnvVar(EnvVarError {
+                             var: env_key.clone(),
+                             instructions: self.env_key_instructions.clone(),
+                         })
+-                    })?;
+-                Ok(Some(api_key))
+-            }
+-            None => Ok(None),
++                    }
++                    _ => err,
++                });
+         }
++
++        Err(CodexErr::EnvVar(EnvVarError {
++            var: env_key.clone(),
++            instructions: self.env_key_instructions.clone(),
++        }))
++    }
++
++    fn keyring_api_key<K: KeyringStore>(
++        &self,
++        keyring_store: &K,
++        env_key: &str,
++    ) -> CodexResult<Option<String>> {
++        let api_key = keyring_store
++            .load(MODEL_PROVIDER_KEYRING_SERVICE, env_key)
++            .map_err(|error| {
++                CodexErr::KeyringRecord(KeyringRecordError {
++                    service: MODEL_PROVIDER_KEYRING_SERVICE.to_string(),
++                    account: env_key.to_string(),
++                    instructions: self.env_key_instructions.clone(),
++                    cause: Some(error.message()),
++                })
++            })?
++            .filter(|value| !value.trim().is_empty())
++            .ok_or_else(|| {
++                CodexErr::KeyringRecord(KeyringRecordError {
++                    service: MODEL_PROVIDER_KEYRING_SERVICE.to_string(),
++                    account: env_key.to_string(),
++                    instructions: self.env_key_instructions.clone(),
++                    cause: None,
++                })
++            })?;
++
++        Ok(Some(api_key))
+     }
+ 
+     /// Effective maximum number of request retries for this provider.
+diff --git a/codex-rs/model-provider-info/src/model_provider_info_tests.rs b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
+index a303050dc1..490a29c797 100644
+--- a/codex-rs/model-provider-info/src/model_provider_info_tests.rs
++++ b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
+@@ -1,4 +1,6 @@
+ use super::*;
++use codex_keyring_store::KeyringStore;
++use codex_keyring_store::tests::MockKeyringStore;
+ use codex_utils_absolute_path::AbsolutePathBuf;
+ use codex_utils_absolute_path::AbsolutePathBufGuard;
+ use pretty_assertions::assert_eq;
+@@ -427,6 +429,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
+     );
+ }
+ 
++#[test]
++fn test_api_key_loads_value_from_keyring() {
++    let keyring_store = MockKeyringStore::default();
++    let provider = ModelProviderInfo {
++        env_key: Some("example-provider".to_string()),
++        ..ModelProviderInfo::default()
++    };
++
++    keyring_store
++        .save(
++            MODEL_PROVIDER_KEYRING_SERVICE,
++            "example-provider",
++            "sk-keyring-test",
++        )
++        .expect("save keyring record");
++
++    assert_eq!(
++        provider
++            .keyring_api_key(&keyring_store, "example-provider")
++            .expect("load keyring api key"),
++        Some("sk-keyring-test".to_string())
++    );
++}
++
++#[test]
++fn test_api_key_rejects_missing_keyring_record() {
++    let keyring_store = MockKeyringStore::default();
++    let provider = ModelProviderInfo {
++        env_key: Some("missing-provider".to_string()),
++        env_key_instructions: Some("Create the record before use.".to_string()),
++        ..ModelProviderInfo::default()
++    };
++
++    let err = provider
++        .keyring_api_key(&keyring_store, "missing-provider")
++        .unwrap_err();
++
++    assert_eq!(
++        err.to_string(),
++        "Missing keyring record for service `Codex Model Providers` and account `missing-provider`. Create the record before use."
++    );
++}
++
+ #[test]
+ fn test_validate_provider_aws_rejects_websockets() {
+     let provider = ModelProviderInfo {
+diff --git a/codex-rs/protocol/src/error.rs b/codex-rs/protocol/src/error.rs
+index d7e953af0b..d0e6ff0704 100644
+--- a/codex-rs/protocol/src/error.rs
++++ b/codex-rs/protocol/src/error.rs
+@@ -161,6 +161,8 @@ pub enum CodexErr {
+     TokioJoin(#[from] JoinError),
+     #[error("{0}")]
+     EnvVar(EnvVarError),
++    #[error("{0}")]
++    KeyringRecord(KeyringRecordError),
+ }
+ 
+ impl From<CancelErr> for CodexErr {
+@@ -175,6 +177,7 @@ impl CodexErr {
+             CodexErr::TurnAborted
+             | CodexErr::Interrupted
+             | CodexErr::EnvVar(_)
++            | CodexErr::KeyringRecord(_)
+             | CodexErr::Fatal(_)
+             | CodexErr::UsageNotIncluded
+             | CodexErr::QuotaExceeded
+@@ -631,6 +634,40 @@ impl std::fmt::Display for EnvVarError {
+     }
+ }
+ 
++#[derive(Debug)]
++pub struct KeyringRecordError {
++    /// Service name used when reading the keyring record.
++    pub service: String,
++    /// Account name used when reading the keyring record.
++    pub account: String,
++    /// Optional instructions to help the user create or update the record.
++    pub instructions: Option<String>,
++    /// Underlying keyring load failure, when the record could not be read.
++    pub cause: Option<String>,
++}
++
++impl std::fmt::Display for KeyringRecordError {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        if let Some(cause) = &self.cause {
++            write!(
++                f,
++                "Failed to load keyring record for service `{}` and account `{}`: {cause}.",
++                self.service, self.account
++            )?;
++        } else {
++            write!(
++                f,
++                "Missing keyring record for service `{}` and account `{}`.",
++                self.service, self.account
++            )?;
++        }
++        if let Some(instructions) = &self.instructions {
++            write!(f, " {instructions}")?;
++        }
++        Ok(())
++    }
++}
++
+ pub fn get_error_message_ui(e: &CodexErr) -> String {
+     let message = match e {
+         CodexErr::Sandbox(SandboxErr::Denied { output, .. }) => {

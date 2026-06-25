@@ -1,12 +1,12 @@
 # -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
 
 PortSystem          1.0
+PortGroup           app 1.1
 PortGroup           cargo 1.0
 PortGroup           github 1.0
 
-github.setup        openai codex 0.139.0 rust-v
+github.setup        openai codex 0.142.0 rust-v
 github.tarball_from archive
-revision            0
 
 categories          llm
 maintainers         {@takebayashi} openmaintainer
@@ -14,25 +14,64 @@ license             Apache-2
 # Undefined symbols for architecture x86_64: "_aligned_alloc"
 platforms           {darwin >= 19}
 
+app.create          no
+# Override this at install/build time if you want a different local signing
+# certificate; keeping the signer and identifier stable avoids repeated
+# keychain prompts across rebuilds.
+app.signing_identity "MacPorts Local Code Signing"
+# Allow the signed CLI to load MacPorts-provided dylibs while still using the
+# hardened runtime, otherwise library validation rejects non-system deps.
+app.signing_entitlements ${filespath}/codex-entitlements.plist
+# OpenAI signs the distributed CLI as a standalone Mach-O with a dedicated
+# identifier and hardened runtime; use a local MacPorts identifier here.
+app.signing_args    --force --options runtime --identifier org.macports.codex
+
 description         Codex CLI is a coding agent from OpenAI that runs locally on your computer.
 long_description    Codex CLI is OpenAI’s coding agent that you can run locally from your terminal. \
                     It can read, change, and run code on your machine in the selected directory.
 
 checksums           ${distname}${extract.suffix} \
-                    rmd160  1c7649e71ae7a7ea29f82ef0c870da603a677946 \
-                    sha256  d8d9d9215dd95711bb761795ab8999ef740e7386b5be5993247c403e068959d2 \
-                    size    8504781
+                    rmd160  9cbcf3505f44f14ed130b3cbf07cecd30ddb8812 \
+                    sha256  3fe9baaa69b8484734b14c5dcee73948423d30235dccc93e46ff4b773cdab06f \
+                    size    9093589
 
 worksrcdir          ${distname}/${name}-rs
 
 # Disable offline mode to workaround dependencies from Git
 cargo.offline_cmd
+# Cargo's libgit2 fetch path is flaky here for git dependencies with nested
+# submodules; use the git CLI as recommended by Cargo's own error message.
+rust::append_envs    CARGO_NET_GIT_FETCH_WITH_CLI=true
+
+# Mirror the existing WIP sccache integration sketched in the Rust PortGroups
+# so this can be dropped cleanly if it becomes first-class in MacPorts base.
+if {[tbool configure.ccache]} {
+    set sccache_dir [file join ${ccache_dir} sccache]
+    depends_build-append port:sccache
+    rust::append_envs    RUSTC_WRAPPER=${prefix}/bin/sccache
+    rust::append_envs    SCCACHE_CACHE_SIZE=${ccache_size}
+    rust::append_envs    SCCACHE_DIR=${sccache_dir}
+}
 
 # https://github.com/openai/codex/issues/16017
 # https://trac.macports.org/ticket/73569
 build.mem_per_job   25600
 # https://trac.macports.org/ticket/73571
 use_parallel_build  no
+
+patch.pre_args      -p1
+patch.dir           ${workpath}/${distname}
+patchfiles          patch-keyring-provider-auth-fallback.diff
+
+post-build {
+    set signing_identity [lindex ${app.signing_identity} 0]
+    set signing_args ${app.signing_args}
+    if {${app.signing_entitlements} ne ""} {
+        set signing_args "--entitlements \"${app.signing_entitlements}\" ${signing_args}"
+    }
+    system -W ${worksrcpath} \
+        "/usr/bin/codesign --sign \"${signing_identity}\" ${signing_args} \"target/[cargo.rust_platform]/release/${name}\""
+}
 
 destroot {
     xinstall -m 755 \
