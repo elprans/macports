@@ -4,12 +4,12 @@ PortSystem          1.0
 PortGroup           npm 1.0
 
 name                opencode
-version             1.17.3
+version             1.17.17
 revision            0
 
 categories          llm
 platforms           {darwin any >= 19}
-maintainers         openmaintainer
+maintainers         nomaintainer
 license             MIT
 supported_archs     x86_64 arm64
 
@@ -28,6 +28,6 @@ homepage            https://opencode.ai
 
 npm.rootname        opencode-ai
 
-checksums           rmd160  1290455a84492071216996316748b38ae7ea46b6 \
-                    sha256  8f47295fd813c84b8abf27d4cb95fc31d3cd449df9987351306a767ac357ed3c \
-                    size    3041
+checksums           rmd160  77cc84104dd85f9593a63f6007eecc8b640bad07 \
+                    sha256  ecf0c1dcef7679f7e9b21e33087de32d93ef7db2093339e5abe9155ce2087e4a \
+                    size    3045
