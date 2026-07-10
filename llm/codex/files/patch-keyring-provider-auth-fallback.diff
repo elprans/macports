@@ -2,10 +2,9 @@ diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
 index 3d8086c27b..15ab8fa672 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3387,6 +3387,7 @@ version = "0.0.0"
+@@ -3576,5 +3576,6 @@ version = "0.0.0"
  dependencies = [
   "codex-api",
-  "codex-app-server-protocol",
 + "codex-keyring-store",
   "codex-protocol",
   "codex-utils-absolute-path",
@@ -34,10 +33,9 @@ diff --git a/codex-rs/model-provider-info/Cargo.toml b/codex-rs/model-provider-i
 index 23c1b3415b..ce7ab5230e 100644
 --- a/codex-rs/model-provider-info/Cargo.toml
 +++ b/codex-rs/model-provider-info/Cargo.toml
-@@ -15,6 +15,7 @@ workspace = true
+@@ -15,5 +15,6 @@ workspace = true
  [dependencies]
  codex-api = { workspace = true }
- codex-app-server-protocol = { workspace = true }
 +codex-keyring-store = { workspace = true }
  codex-protocol = { workspace = true }
  http = { workspace = true }
@@ -49,9 +47,9 @@ index 5f0f840508..dd15defc47 100644
 @@ -9,9 +9,12 @@ use codex_api::Provider as ApiProvider;
  use codex_api::RetryConfig as ApiRetryConfig;
  use codex_api::is_azure_responses_provider;
- use codex_app_server_protocol::AuthMode;
 +use codex_keyring_store::DefaultKeyringStore;
 +use codex_keyring_store::KeyringStore;
+ use codex_protocol::auth::AuthMode;
  use codex_protocol::config_types::ModelProviderAuthInfo;
  use codex_protocol::error::CodexErr;
  use codex_protocol::error::EnvVarError;

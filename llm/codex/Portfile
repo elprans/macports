@@ -5,7 +5,7 @@ PortGroup           app 1.1
 PortGroup           cargo 1.0
 PortGroup           github 1.0
 
-github.setup        openai codex 0.142.0 rust-v
+github.setup        openai codex 0.144.1 rust-v
 github.tarball_from archive
 
 categories          llm
@@ -23,17 +23,18 @@ app.signing_identity "MacPorts Local Code Signing"
 # hardened runtime, otherwise library validation rejects non-system deps.
 app.signing_entitlements ${filespath}/codex-entitlements.plist
 # OpenAI signs the distributed CLI as a standalone Mach-O with a dedicated
-# identifier and hardened runtime; use a local MacPorts identifier here.
-app.signing_args    --force --options runtime --identifier org.macports.codex
+# identifier and hardened runtime; a local MacPorts identifier derived from
+# each binary name is appended in post-build.
+app.signing_args    --force --options runtime
 
 description         Codex CLI is a coding agent from OpenAI that runs locally on your computer.
 long_description    Codex CLI is OpenAI’s coding agent that you can run locally from your terminal. \
                     It can read, change, and run code on your machine in the selected directory.
 
 checksums           ${distname}${extract.suffix} \
-                    rmd160  9cbcf3505f44f14ed130b3cbf07cecd30ddb8812 \
-                    sha256  3fe9baaa69b8484734b14c5dcee73948423d30235dccc93e46ff4b773cdab06f \
-                    size    9093589
+                    rmd160  6d3f9ebc7e271a510211c0e58d91d10454b8e3be \
+                    sha256  c11868501ef0e67c90759deaf2c0933cd07e4bea4f47a47186ee6de046c57ef6 \
+                    size    9533046
 
 worksrcdir          ${distname}/${name}-rs
 
@@ -63,20 +64,35 @@ patch.pre_args      -p1
 patch.dir           ${workpath}/${distname}
 patchfiles          patch-keyring-provider-auth-fallback.diff
 
+# Companion binary the code-mode tool spawns; codex resolves it from the
+# directory containing the codex executable itself, so it must live alongside
+# codex in ${prefix}/bin.
+set codex_binaries    {codex codex-code-mode-host}
+
+# Only build the binaries we install; a bare workspace build would also
+# compile dozens of test-client and dev-tool bin targets.
+foreach binary ${codex_binaries} {
+    build.args-append   --bin ${binary}
+}
+
 post-build {
     set signing_identity [lindex ${app.signing_identity} 0]
     set signing_args ${app.signing_args}
     if {${app.signing_entitlements} ne ""} {
         set signing_args "--entitlements \"${app.signing_entitlements}\" ${signing_args}"
     }
-    system -W ${worksrcpath} \
-        "/usr/bin/codesign --sign \"${signing_identity}\" ${signing_args} \"target/[cargo.rust_platform]/release/${name}\""
+    foreach binary ${codex_binaries} {
+        system -W ${worksrcpath} \
+            "/usr/bin/codesign --sign \"${signing_identity}\" ${signing_args} --identifier org.macports.${binary} \"target/[cargo.rust_platform]/release/${binary}\""
+    }
 }
 
 destroot {
-    xinstall -m 755 \
-        ${worksrcpath}/target/[cargo.rust_platform]/release/${name} \
-        ${destroot}${prefix}/bin/
+    foreach binary ${codex_binaries} {
+        xinstall -m 755 \
+            ${worksrcpath}/target/[cargo.rust_platform]/release/${binary} \
+            ${destroot}${prefix}/bin/
+    }
 }
 
 source ${filespath}/cargo-crates.tcl

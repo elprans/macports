@@ -187,7 +187,7 @@ cargo.crates \
     critical-section                 1.2.0  790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b \
     crossbeam-channel               0.5.15  82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2 \
     crossbeam-deque                  0.8.6  9dd111b7b7f7d55b72c0a6ae361660ee5853c9af73f70c3c2ef6858b950e2e51 \
-    crossbeam-epoch                 0.9.18  5b82ac4a3c2ca9c3460964f020e1402edd5753411d7737aa39c3714ad1b5420e \
+    crossbeam-epoch                 0.9.20  2d6914041f254d6e9176c01941b21115dcfb7089e55135a35411081bd106ef3f \
     crossbeam-queue                 0.3.12  0f58bbc28f91df819d0aa2a2c00cd19754769c2fad90579b3592b1c9ba7a3115 \
     crossbeam-utils                 0.8.21  d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28 \
     crossterm_winapi                 0.9.1  acdd7c62a3665c7f6830a51635d9ac9b23ed385797f70a83bb8bafe9c572ab2b \
@@ -635,7 +635,7 @@ cargo.crates \
     openssl-macros                   0.1.1  a948666b637a0f465e8564c73e89d4dde00d72d4d473cc972f390fc3dcee7d9c \
     openssl-probe                    0.1.6  d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e \
     openssl-probe                    0.2.1  7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe \
-    openssl-src                   300.5.5+3.5.5  3f1787d533e03597a7934fd0a765f0d28e94ecc5fb7789f8053b1e699a56f709 \
+    openssl-src                   300.6.1+3.6.3  46eb8fb9fb3b61ce1c0f8a026c4c1a0714d3a9e138e7fbde78753ce2babc3846 \
     openssl-sys                    0.9.111  82cab2d520aa75e3c58898289429321eb788c3106963d0dc886ec7a5f4adc321 \
     opentelemetry                   0.31.0  b84bcd6ae87133e903af7ef497404dda70c60d0ea14895fc8a5e6722754fc2a0 \
     opentelemetry-appender-tracing    0.31.1  ef6a1ac5ca3accf562b8c306fa8483c85f4390f768185ab775f242f7fe8fdcc2 \
@@ -679,7 +679,7 @@ cargo.crates \
     piper                            0.2.4  96c8c490f422ef9a4efd2cb5b42b76c8613d7e7dfc1caf667b8a3350a5acc066 \
     pkcs8                           0.10.2  f950b2377845cebe5cf8b5165cb3cc1a5e0fa5cfa3e1f7f55707d8fd82e0a7b7 \
     pkg-config                      0.3.32  7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c \
-    plist                            1.8.0  740ebea15c5d1428f910cd1a5f52cebf8d25006245ed8ade92702f4943d91e07 \
+    plist                            1.9.0  092791278e026273c1b65bbdcfbba3a300f2994c896bd01ab01da613c29c46f1 \
     png                             0.18.0  97baced388464909d42d89643fe4361939af9b7ce7a31ee32a168f832a70f2a0 \
     polling                         3.11.0  5d0e4f59085d47d8241c88ead0f274e8a0cb551f3625263c05eb8dd897c34218 \
     poly1305                         0.8.0  8159bd90725d2df49889a078b54f4f79e87f1f8a8444194cdca81d38f5393abf \
@@ -719,7 +719,8 @@ cargo.crates \
     pulldown-cmark-escape           0.10.1  bd348ff538bc9caeda7ee8cad2d1d48236a1f443c1fa3913c6a02fe0043b1dd3 \
     pxfm                            0.1.27  7186d3822593aa4393561d186d1393b3923e9d6163d3fbfd6e825e3e6cf3e6a8 \
     quick-error                      2.0.1  a993555f31e5a609f617c12db6250dedcac1b0a85076912c436e6fc9b2c8e6a3 \
-    quick-xml                       0.38.4  b66c2058c55a409d601666cffe35f04333cf1013010882cec174a7467cd4e21c \
+    quick-xml                       0.39.4  cdcc8dd4e2f670d309a5f0e83fe36dfdc05af317008fea29144da1a2ac858e5e \
+    quick-xml                       0.41.0  e660451e55124f798a69a5af3f49ccfbefbd41910eefd25caf2393e1f3473ec1 \
     quickcheck                       1.1.0  95c589f335db0f6aaa168a7cd27b1fc6920f5e1470c804f814d9cd6e62a0f70b \
     quinn                           0.11.9  b9e20a958963c291dc322d98411f541009df2ced7b5a4f2bd52337638cfccf20 \
     quinn-proto                    0.11.14  434b42fec591c96ef50e21e886936e66d3cc3f737104fdb9b737c40ffb94c098 \
@@ -774,8 +775,8 @@ cargo.crates \
     resolv-conf                      0.7.6  1e061d1b48cb8d38042de4ae0a7a6401009d6143dc80d2e2d6f31f0bdd6470c7 \
     rfc6979                          0.4.0  f8dd2a808d456c4a54e300a23e9f5a67e122c3024119acbfd73e3bf664491cb2 \
     ring                           0.17.14  a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7 \
-    rmcp                             1.7.0  0810a9f717d9828f475fe1f629f4c305c8464b7f496c3a854b58d29e65f4058e \
-    rmcp-macros                      1.7.0  6aefac48c364756e97f04c0401ba3231e8607882c7c1d92da0437dc16307904d \
+    rmcp                             1.8.0  1d1f571c72940a19d9532fe52dbea8bc9912bf1d766c2970bb824056b86f3f59 \
+    rmcp-macros                      1.8.0  1aad0035b69380782d78ea95b508327e6deaa2235909053e596eea8f27b5e1d5 \
     rtrb                             0.3.3  7204ed6420f698836b76d4d5c2ec5dec7585fd5c3a788fd1cde855d1de598239 \
     rust-embed                      8.11.0  04113cb9355a377d83f06ef1f0a45b8ab8cd7d8b1288160717d66df5c7988d27 \
     rust-embed-impl                 8.11.0  da0902e4c7c8e997159ab384e6d0fc91c221375f6894346ae107f47dd0f3ccaa \
@@ -1057,7 +1058,7 @@ cargo.crates \
     wayland-client                 0.31.12  b8e6faa537fbb6c186cb9f1d41f2f811a4120d1b57ec61f50da451a0c5122bec \
     wayland-protocols              0.32.10  baeda9ffbcfc8cd6ddaade385eaf2393bd2115a69523c735f12242353c3df4f3 \
     wayland-protocols-wlr           0.3.10  e9597cdf02cf0c34cd5823786dce6b5ae8598f05c2daf5621b6e178d4f7345f3 \
-    wayland-scanner                 0.31.8  5423e94b6a63e68e439803a3e153a9252d5ead12fd853334e2ad33997e3889e3 \
+    wayland-scanner                0.31.10  9c324a910fd86ebdc364a3e61ec1f11737d3b1d6c273c0239ee8ff4bc0d24b4a \
     wayland-sys                     0.31.8  1e6dbfc3ac5ef974c92a2235805cc0114033018ae1290a72e474aa8b28cbbdfd \
     web-sys                         0.3.85  312e32e551d92129218ea9a2452120f4aabc03529ef03e4d0d82fb2780608598 \
     web-time                         1.1.0  5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb \
