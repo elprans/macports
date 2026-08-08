@@ -5,7 +5,7 @@ PortGroup           app 1.1
 PortGroup           cargo 1.0
 PortGroup           github 1.0
 
-github.setup        openai codex 0.145.0 rust-v
+github.setup        openai codex 0.147.0 rust-v
 github.tarball_from archive
 
 categories          llm
@@ -32,9 +32,9 @@ long_description    Codex CLI is OpenAI’s coding agent that you can run locall
                     It can read, change, and run code on your machine in the selected directory.
 
 checksums           ${distname}${extract.suffix} \
-                    rmd160  5bd25c14ff6778e0eec3f6cea225a31913b0813e \
-                    sha256  7126822e9148f20297434f0e302b811f5eea8700879686a5960d4a6444c2e369 \
-                    size    9970106
+                    rmd160  7716c0f0d2e8e9209a2d46d2c220f0d8c04800df \
+                    sha256  355bde4b40d5ba6deea2e469d36f91708315729f3e84c9c69cce6b041a5ba593 \
+                    size    11175207
 
 worksrcdir          ${distname}/${name}-rs
 
