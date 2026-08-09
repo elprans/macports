@@ -13,6 +13,7 @@ maintainers         {@takebayashi} openmaintainer
 license             Apache-2
 # Undefined symbols for architecture x86_64: "_aligned_alloc"
 platforms           {darwin >= 19}
+supported_archs     x86_64 arm64
 
 app.create          no
 # Override this at install/build time if you want a different local signing
@@ -36,6 +37,49 @@ checksums           ${distname}${extract.suffix} \
                     sha256  355bde4b40d5ba6deea2e469d36f91708315729f3e84c9c69cce6b041a5ba593 \
                     size    11175207
 
+# Codex enables V8 pointer compression and sandboxing. rusty_v8's own release
+# does not publish that archive profile for macOS, so use the matching assets
+# published with Codex instead of letting the build script request a 404 URL.
+set v8_version       150.4.0
+set v8_tag           rusty-v8-v${v8_version}
+if {${build_arch} eq "arm64"} {
+    set v8_target    aarch64-apple-darwin
+    set v8_archive_rmd160 \
+                    a6dd84c7334e3fc26d095b609c243d2a16677ac5
+    set v8_archive_sha256 \
+                    00adbb48798848c77550441c68673a5e8529b8e1b73eabcdee232cb39b40f4a1
+    set v8_archive_size \
+                    23542428
+} else {
+    set v8_target    x86_64-apple-darwin
+    set v8_archive_rmd160 \
+                    5a621ea71499bec9bd88ec40c33a94355121ad1c
+    set v8_archive_sha256 \
+                    e0d9bb64e8b3a034c2930c83972f3f35760211148342fa0407b38250ef330856
+    set v8_archive_size \
+                    24242168
+}
+set v8_archive      librusty_v8_ptrcomp_sandbox_release_${v8_target}.a.gz
+set v8_binding      src_binding_ptrcomp_sandbox_release_${v8_target}.rs
+set v8_archive_dist rusty-v8-v${v8_version}-${v8_archive}
+set v8_binding_dist rusty-v8-v${v8_version}-${v8_binding}
+
+master_sites-append https://github.com/openai/codex/releases/download/${v8_tag}/${v8_archive}?dummy=:rusty_v8_archive \
+                    https://github.com/openai/codex/releases/download/${v8_tag}/${v8_binding}?dummy=:rusty_v8_binding
+distfiles-append    ${v8_archive_dist}:rusty_v8_archive \
+                    ${v8_binding_dist}:rusty_v8_binding
+checksums-append    ${v8_archive_dist} \
+                    rmd160  ${v8_archive_rmd160} \
+                    sha256  ${v8_archive_sha256} \
+                    size    ${v8_archive_size} \
+                    ${v8_binding_dist} \
+                    rmd160  b0f1ec002f41b4e9c0288d9073cc47b91cfc53d1 \
+                    sha256  ca5adf0cf89c9a70ad460ae73648b2fe89b74aa113b3cb7f757b6a02b758394f \
+                    size    39895
+
+# These are build inputs, not source archives.
+extract.only        ${distname}${extract.suffix}
+
 worksrcdir          ${distname}/${name}-rs
 
 # Disable offline mode to workaround dependencies from Git
@@ -43,6 +87,8 @@ cargo.offline_cmd
 # Cargo's libgit2 fetch path is flaky here for git dependencies with nested
 # submodules; use the git CLI as recommended by Cargo's own error message.
 rust::append_envs    CARGO_NET_GIT_FETCH_WITH_CLI=true
+rust::append_envs    RUSTY_V8_ARCHIVE=${distpath}/${v8_archive_dist}
+rust::append_envs    RUSTY_V8_SRC_BINDING_PATH=${distpath}/${v8_binding_dist}
 
 # Mirror the existing WIP sccache integration sketched in the Rust PortGroups
 # so this can be dropped cleanly if it becomes first-class in MacPorts base.
