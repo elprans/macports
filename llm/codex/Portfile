@@ -37,6 +37,10 @@ checksums           ${distname}${extract.suffix} \
                     sha256  355bde4b40d5ba6deea2e469d36f91708315729f3e84c9c69cce6b041a5ba593 \
                     size    11175207
 
+# Load the crate list before expanding ${distpath} below. The Rust PortGroup
+# switches dist_subdir to cargo-crates when cargo.crates is nonempty.
+source ${filespath}/cargo-crates.tcl
+
 # Codex enables V8 pointer compression and sandboxing. rusty_v8's own release
 # does not publish that archive profile for macOS, so use the matching assets
 # published with Codex instead of letting the build script request a 404 URL.
@@ -140,5 +144,3 @@ destroot {
             ${destroot}${prefix}/bin/
     }
 }
-
-source ${filespath}/cargo-crates.tcl
