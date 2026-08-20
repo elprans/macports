@@ -132,7 +132,6 @@ cargo.crates \
     castaway                         0.2.4  dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a \
     cbc                              0.1.2  26b52a9543ae338f279b96b0b9fed9c8093744685043739079ce85cd58f289a6 \
     cc                              1.2.55  47b26a0954ae34af09b50f0de26458fa95369a0d478d8236d3f93082b219bd29 \
-    cesu8                            1.1.0  6d43a04d8753f35258c91f8ec639f792891f748a1edbd759cf1dcea3382ad83c \
     cexpr                            0.6.0  6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766 \
     cfg-if                           1.0.4  9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801 \
     cfg_aliases                      0.1.1  fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e \
@@ -511,8 +510,10 @@ cargo.crates \
     jiff-static                     0.2.23  2a8c8b344124222efd714b73bb41f8b5120b27a7cc1c75593a6ff768d9d05aa4 \
     jiff-tzdb                        0.1.6  c900ef84826f1338a557697dc8fc601df9ca9af4ac137c7fb61d4c6f2dfd3076 \
     jiff-tzdb-platform               0.1.3  875a5a69ac2bab1a891711cf5eccbec1ce0341ea805560dcd90b7a2e925132e8 \
-    jni                             0.21.1  1a87aa2bb7d2af34197c04845522473242e1aa17c12f4935d5856491a7fb8c97 \
-    jni-sys                          0.3.0  8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130 \
+    jni                             0.22.4  5efd9a482cf3a427f00d6b35f14332adc7902ce91efb778580e180ff90fa3498 \
+    jni-macros                      0.22.4  a00109accc170f0bdb141fed3e393c565b6f5e072365c3bd58f5b062591560a3 \
+    jni-sys                          0.4.1  c6377a88cb3910bee9b0fa88d4f42e1d2da8e79915598f65fb0c7ee14c878af2 \
+    jni-sys-macros                   0.4.1  38c0b942f458fe50cdac086d2f946512305e5631e720728f2a61aabcd47a6264 \
     jobserver                       0.1.34  9afb3de4395d6b3e67a780b6de64b51c978ecf11cb9a462c66be7d4ca9039d33 \
     js-sys                          0.3.85  8c942ebf8e95485ca0d52d97da7c5a2c387d0e7f0ba4c35e93bfcaee045955b3 \
     jsonptr                          0.7.1  a5a3cc660ba5d72bce0b3bb295bf20847ccbb40fd423f3f05b61273672e561fe \
@@ -552,8 +553,7 @@ cargo.crates \
     logos-codegen                   0.15.1  192a3a2b90b0c05b27a0b2c43eecdb7c415e29243acc3f89cc8247a5b693045c \
     logos-derive                    0.15.1  605d9697bcd5ef3a42d38efc51541aa3d6a4a25f7ab6d1ed0da5ac632a26b470 \
     loom                             0.7.2  419e0dc8046cb947daa77eb95ae174acfbddb7673b4151f56d1eed8e93fbfaca \
-    lru                             0.16.3  a1dc47f592c06f33f8e3aea9591776ec7c9f9e4124778ff8a3c3b87159f7e593 \
-    lru                             0.18.1  0b6180140927ee907000b0aa540091f6ea512ead4447c92b8fc35bc72788a5a6 \
+    lru                             0.18.2  5d2f2f9b4ba7e6b24d95e7e899329d35be83bcded72c8540cdd5368932d1d90a \
     lru-slab                         0.1.2  112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154 \
     lsp-types                       0.97.0  53353550a17c04ac46c585feb189c2db82154fc84b79c7a66c96c2c644f66071 \
     lzma-rs                          0.3.0  297e814c836ae64db86b36cf2a557ba54368d03f6afcd7d947c266692f71115e \
@@ -708,6 +708,15 @@ cargo.crates \
     prost-build                     0.14.3  343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7 \
     prost-derive                    0.14.3  27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b \
     prost-types                     0.14.3  8991c4cbdb8bc5b11f0b074ffe286c30e523de90fee5ba8132f1399f23cb3dd7 \
+    protoc-bin-vendored              3.2.0  d1c381df33c98266b5f08186583660090a4ffa0889e76c7e9a5e175f645a67fa \
+    protoc-bin-vendored-linux-aarch_64     3.2.0  c350df4d49b5b9e3ca79f7e646fde2377b199e13cfa87320308397e1f37e1a4c \
+    protoc-bin-vendored-linux-ppcle_64     3.2.0  a55a63e6c7244f19b5c6393f025017eb5d793fd5467823a099740a7a4222440c \
+    protoc-bin-vendored-linux-s390_64     3.2.0  1dba5565db4288e935d5330a07c264a4ee8e4a5b4a4e6f4e83fad824cc32f3b0 \
+    protoc-bin-vendored-linux-x86_32     3.2.0  8854774b24ee28b7868cd71dccaae8e02a2365e67a4a87a6cd11ee6cdbdf9cf5 \
+    protoc-bin-vendored-linux-x86_64     3.2.0  b38b07546580df720fa464ce124c4b03630a6fb83e05c336fea2a241df7e5d78 \
+    protoc-bin-vendored-macos-aarch_64     3.2.0  89278a9926ce312e51f1d999fee8825d324d603213344a9a706daa009f1d8092 \
+    protoc-bin-vendored-macos-x86_64     3.2.0  81745feda7ccfb9471d7a4de888f0652e806d5795b61480605d4943176299756 \
+    protoc-bin-vendored-win32        3.2.0  95067976aca6421a523e491fce939a3e65249bac4b977adee0ee9771568e8aa3 \
     psl                            2.1.184  81dc6a90669f481b41cae3005c68efa36bef275b95aa9123a7af7f1c68c6e5b2 \
     psl-types                       2.0.11  33cb294fe86a74cbcf50d4445b37da762029549ebeea341421c7c70370f86cac \
     publicsuffix                     2.3.0  6f42ea446cab60335f76979ec15e12619a2165b5ae2c12166bef27d283a9fadf \
@@ -866,6 +875,7 @@ cargo.crates \
     signal-hook-registry             1.4.8  c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b \
     signature                        2.2.0  77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de \
     simd-adler32                     0.3.8  e320a6c5ad31d271ad523dcf3ad13e2767ad8b1cb8f047f75a8aeaf8da139da2 \
+    simd_cesu8                       1.2.0  11031e251abf8611c80f460e19dbdeb54a66db918e49c65a7065b46ac7aec520 \
     simdutf8                         0.1.5  e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e \
     similar                          2.7.0  bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa \
     simple_asn1                      0.6.4  0d585997b0ac10be3c5ee635f1bab02d512760d14b7c468801ac8a01d9ae5f1d \
@@ -1072,7 +1082,7 @@ cargo.crates \
     wayland-sys                     0.31.8  1e6dbfc3ac5ef974c92a2235805cc0114033018ae1290a72e474aa8b28cbbdfd \
     web-sys                         0.3.85  312e32e551d92129218ea9a2452120f4aabc03529ef03e4d0d82fb2780608598 \
     web-time                         1.1.0  5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb \
-    webbrowser                       1.0.6  00f1243ef785213e3a32fa0396093424a3a6ea566f9948497e5a2309261a4c97 \
+    webbrowser                       1.2.4  62c35be770821a214dbc362fc26908c853e776c0004294d0b10b8a6bad582f94 \
     webpki-root-certs                1.0.5  36a29fc0408b113f68cf32637857ab740edfafdf460c326cd2afaa2d84cc05dc \
     webpki-roots                     1.0.5  12bed680863276c63889429bfd6cab3b99943659923822de1c8a39c49e4d722c \
     weezl                           0.1.12  a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88 \
@@ -1110,44 +1120,35 @@ cargo.crates \
     windows-result                   0.4.1  7781fa89eaf60850ac3d2da7af8e5242a5ea78d1a11c49bf2910bb5a73853eb5 \
     windows-strings                  0.1.0  4cd9b125c486025df0eabcb585e62173c6c9eddcec5d117d3b6e8c30e2ee4d10 \
     windows-strings                  0.5.1  7837d08f69c77cf6b07689544538e017c1bfcf57e34b4c0ff58e6c2cd3b37091 \
-    windows-sys                     0.45.0  75283be5efb2831d37ea142365f009c02ec203cd29a3ebecbc093d52315b66d0 \
     windows-sys                     0.48.0  677d2418bec65e3338edb076e806bc1ec15693c5d0104683f2efe857f61056a9 \
     windows-sys                     0.52.0  282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d \
     windows-sys                     0.59.0  1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b \
     windows-sys                     0.60.2  f2f500e4d28234f72040990ec9d39e3a6b950f9f22d3dba18416c35882612bcb \
     windows-sys                     0.61.2  ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc \
-    windows-targets                 0.42.2  8e5180c00cd44c9b1c88adb3693291f1cd93605ded80c250a75d472756b4d071 \
     windows-targets                 0.48.5  9a2fa6e2155d7247be68c096456083145c183cbbbc2764150dda45a87197940c \
     windows-targets                 0.52.6  9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973 \
     windows-targets                 0.53.5  4945f9f551b88e0d65f3db0bc25c33b8acea4d9e41163edf90dcd0b19f9069f3 \
     windows-threading                0.2.1  3949bd5b99cafdf1c7ca86b43ca564028dfe27d66958f2470940f73d86d75b37 \
-    windows_aarch64_gnullvm         0.42.2  597a5118570b68bc08d8d59125332c54f1ba9d9adeedeef5b99b02ba2b0698f8 \
     windows_aarch64_gnullvm         0.48.5  2b38e32f0abccf9987a4e3079dfb67dcd799fb61361e53e2882c3cbaf0d905d8 \
     windows_aarch64_gnullvm         0.52.6  32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3 \
     windows_aarch64_gnullvm         0.53.1  a9d8416fa8b42f5c947f8482c43e7d89e73a173cead56d044f6a56104a6d1b53 \
-    windows_aarch64_msvc            0.42.2  e08e8864a60f06ef0d0ff4ba04124db8b0fb3be5776a5cd47641e942e58c4d43 \
     windows_aarch64_msvc            0.48.5  dc35310971f3b2dbbf3f0690a219f40e2d9afcf64f9ab7cc1be722937c26b4bc \
     windows_aarch64_msvc            0.52.6  09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469 \
     windows_aarch64_msvc            0.53.1  b9d782e804c2f632e395708e99a94275910eb9100b2114651e04744e9b125006 \
-    windows_i686_gnu                0.42.2  c61d927d8da41da96a81f029489353e68739737d3beca43145c8afec9a31a84f \
     windows_i686_gnu                0.48.5  a75915e7def60c94dcef72200b9a8e58e5091744960da64ec734a6c6e9b3743e \
     windows_i686_gnu                0.52.6  8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b \
     windows_i686_gnu                0.53.1  960e6da069d81e09becb0ca57a65220ddff016ff2d6af6a223cf372a506593a3 \
     windows_i686_gnullvm            0.52.6  0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66 \
     windows_i686_gnullvm            0.53.1  fa7359d10048f68ab8b09fa71c3daccfb0e9b559aed648a8f95469c27057180c \
-    windows_i686_msvc               0.42.2  44d840b6ec649f480a41c8d80f9c65108b92d89345dd94027bfe06ac444d1060 \
     windows_i686_msvc               0.48.5  8f55c233f70c4b27f66c523580f78f1004e8b5a8b659e05a4eb49d4166cca406 \
     windows_i686_msvc               0.52.6  240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66 \
     windows_i686_msvc               0.53.1  1e7ac75179f18232fe9c285163565a57ef8d3c89254a30685b57d83a38d326c2 \
-    windows_x86_64_gnu              0.42.2  8de912b8b8feb55c064867cf047dda097f92d51efad5b491dfb98f6bbb70cb36 \
     windows_x86_64_gnu              0.48.5  53d40abd2583d23e4718fddf1ebec84dbff8381c07cae67ff7768bbf19c6718e \
     windows_x86_64_gnu              0.52.6  147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78 \
     windows_x86_64_gnu              0.53.1  9c3842cdd74a865a8066ab39c8a7a473c0778a3f29370b5fd6b4b9aa7df4a499 \
-    windows_x86_64_gnullvm          0.42.2  26d41b46a36d453748aedef1486d5c7a85db22e56aff34643984ea85514e94a3 \
     windows_x86_64_gnullvm          0.48.5  0b7b52767868a23d5bab768e390dc5f5c55825b6d30b86c844ff2dc7414044cc \
     windows_x86_64_gnullvm          0.52.6  24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d \
     windows_x86_64_gnullvm          0.53.1  0ffa179e2d07eee8ad8f57493436566c7cc30ac536a3379fdf008f47f6bb7ae1 \
-    windows_x86_64_msvc             0.42.2  9aec5da331524158c6d1a4ac0ab1541149c0b9505fde06423b02f5ef0106b9f0 \
     windows_x86_64_msvc             0.48.5  ed94fce61571a4006852b7389a063ab983c02eb1bb37b47f8272ce92d06d9538 \
     windows_x86_64_msvc             0.52.6  589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec \
     windows_x86_64_msvc             0.53.1  d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650 \
