@@ -1,8 +1,8 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 8f4ac8ffea..7fd920b981 100644
+index 471c342ff9..c3de1c9204 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3744,6 +3744,7 @@ name = "codex-model-provider-info"
+@@ -3739,6 +3739,7 @@ name = "codex-model-provider-info"
  version = "0.0.0"
  dependencies = [
   "codex-api",
@@ -23,7 +23,7 @@ index da018acf66..0c8a0cf259 100644
  http = { workspace = true }
  schemars = { workspace = true }
 diff --git a/codex-rs/model-provider-info/src/lib.rs b/codex-rs/model-provider-info/src/lib.rs
-index 14f55c2042..083a80ca87 100644
+index 3d58aadd7a..01c7e6fc78 100644
 --- a/codex-rs/model-provider-info/src/lib.rs
 +++ b/codex-rs/model-provider-info/src/lib.rs
 @@ -7,10 +7,14 @@
@@ -41,16 +41,16 @@ index 14f55c2042..083a80ca87 100644
  use codex_protocol::error::Result as CodexResult;
  use http::HeaderMap;
  use http::header::HeaderName;
-@@ -25,6 +29,8 @@ use std::time::Duration;
- const DEFAULT_STREAM_IDLE_TIMEOUT_MS: u64 = 300_000;
+@@ -27,6 +31,8 @@ const DEFAULT_STREAM_IDLE_TIMEOUT_MS: u64 = 300_000;
  const DEFAULT_STREAM_MAX_RETRIES: u64 = 5;
  const DEFAULT_REQUEST_MAX_RETRIES: u64 = 4;
+ const DEFAULT_AWS_AUTH_REFRESH_TIMEOUT_MS: u64 = 300_000;
 +const MODEL_PROVIDER_KEYRING_ENABLE_ENV_VAR: &str = "CODEX_ENABLE_PROVIDER_KEYRING";
 +const MODEL_PROVIDER_KEYRING_SERVICE: &str = "Codex Model Providers";
  pub const DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS: u64 = 15_000;
  /// Hard cap for user-configured `stream_max_retries`.
  const MAX_STREAM_MAX_RETRIES: u64 = 100;
-@@ -284,25 +290,72 @@ impl ModelProviderInfo {
+@@ -325,25 +331,72 @@ impl ModelProviderInfo {
          })
      }
  
@@ -141,7 +141,7 @@ index 14f55c2042..083a80ca87 100644
  
      /// Effective maximum number of request retries for this provider.
 diff --git a/codex-rs/model-provider-info/src/model_provider_info_tests.rs b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
-index 26950e41ac..44b2219fe1 100644
+index cb8dd5cfc9..7c0051a8ca 100644
 --- a/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 +++ b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 @@ -1,4 +1,6 @@
@@ -151,7 +151,7 @@ index 26950e41ac..44b2219fe1 100644
  use codex_utils_absolute_path::AbsolutePathBuf;
  use codex_utils_absolute_path::AbsolutePathBufGuard;
  use pretty_assertions::assert_eq;
-@@ -559,6 +561,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
+@@ -592,6 +594,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
      );
  }
  
@@ -202,7 +202,7 @@ index 26950e41ac..44b2219fe1 100644
  fn test_validate_provider_aws_rejects_websockets() {
      let provider = ModelProviderInfo {
 diff --git a/codex-rs/protocol/src/error.rs b/codex-rs/protocol/src/error.rs
-index f503093d92..0e29ee0534 100644
+index 65ed48e035..2652224e1c 100644
 --- a/codex-rs/protocol/src/error.rs
 +++ b/codex-rs/protocol/src/error.rs
 @@ -180,6 +180,8 @@ pub enum CodexErrorDetails {
@@ -230,7 +230,7 @@ index f503093d92..0e29ee0534 100644
              | CodexErrorDetails::Fatal(_)
              | CodexErrorDetails::UsageNotIncluded
              | CodexErrorDetails::QuotaExceeded
-@@ -812,6 +816,40 @@ impl std::fmt::Display for EnvVarError {
+@@ -813,6 +817,40 @@ impl std::fmt::Display for EnvVarError {
      }
  }
  

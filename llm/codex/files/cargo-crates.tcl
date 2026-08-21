@@ -210,12 +210,15 @@ cargo.crates \
     darling                        0.20.11  fc7f46116c46ff9ab3eb1597a45688b6715c6e628b5c133e288e709a29bcb4ee \
     darling                         0.21.3  9cdf337090841a411e2a7f3deb9187445851f91b309c0c0a29e05f74a00a48c0 \
     darling                         0.23.0  25ae13da2f202d56bd7f91c25fba009e7717a1e4a1cc98a76d844b65ae912e9d \
+    darling                         0.24.0  88490bf1b990d87eaaa7ac8aa887f629a08e7359765b4911faf63c3763347d23 \
     darling_core                   0.20.11  0d00b9596d185e565c2207a0b01f8bd1a135483d02d9b7b0a54b11da8d53412e \
     darling_core                    0.21.3  1247195ecd7e3c85f83c8d2a366e4210d588e802133e1e355180a9870b517ea4 \
     darling_core                    0.23.0  9865a50f7c335f53564bb694ef660825eb8610e0a53d3e11bf1b0d3df31e03b0 \
+    darling_core                    0.24.0  084e274f91c482280130e1e34e0b8d6e66776a060d7b6de7b84289ca778868c4 \
     darling_macro                  0.20.11  fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead \
     darling_macro                   0.21.3  d38308df82d1080de0afee5d069fa14b0326a88c14f15c5ccda35b4a6c414c81 \
     darling_macro                   0.23.0  ac3984ec7bd6cfa798e62b4a642426a5be0e68f9401cfc2a01e3fa9ea2fcdb8d \
+    darling_macro                   0.24.0  68f5792fa0d41cd2325ce0ffa64f0a340eaebd4971a3a0c5e1ffd2cc488a355e \
     dashmap                          6.1.0  5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf \
     data-encoding                   2.10.0  d7a1e2f27636f116493b8b860f5546edb47c8d8f8ea73e1d2a20be88e28d1fea \
     dbus                            0.9.10  21b3aa68d7e7abee336255bd7248ea965cc393f3e70411135a6f6a4b651345d4 \
@@ -409,7 +412,7 @@ cargo.crates \
     globset                         0.4.18  52dfc19153a48bde0cbd630453615c8151bce3a5adfac7a0aebfbf0a1e1f57e3 \
     group                           0.13.0  f0f9ef7462f7c099f518d754361858f86d8a07af53ba9af0fe635bbccb151a63 \
     gzip-header                      1.0.0  95cc527b92e6029a62960ad99aa8a6660faa4555fe5f731aab13aa6a921795a2 \
-    h2                              0.4.13  2f44da3a8150a6703ed5d34e164b875fd14c2cdab9af1252a9a1020bde2bdc54 \
+    h2                              0.4.16  a9f37a958b41b3b19ee2707c06439c0e9e547e847223eb791ecb0cb821c65e27 \
     half                             2.7.1  6ea2d84b969582b4b1864a92dc5d27cd2b77b622a8d79306834f1be5ba20d84b \
     hash32                           0.2.1  b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67 \
     hash32                           0.3.1  47d60b12902ba28e2730cd37e95b8c9223af2808df9e902d4df49588d1470606 \
@@ -786,8 +789,8 @@ cargo.crates \
     resolv-conf                      0.7.6  1e061d1b48cb8d38042de4ae0a7a6401009d6143dc80d2e2d6f31f0bdd6470c7 \
     rfc6979                          0.4.0  f8dd2a808d456c4a54e300a23e9f5a67e122c3024119acbfd73e3bf664491cb2 \
     ring                           0.17.14  a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7 \
-    rmcp                             3.0.0  fcd2b6dd3b18129368955f32661a7718969e8c152c7d8866434c09cf15a512e0 \
-    rmcp-macros                      3.0.0  e1aa4b9345795260a43fc23d6d05e096407c8b953903f673af7c4404b49fb2d6 \
+    rmcp                             3.1.2  c8dddc5b1924b9a59fba420166160ca2c4663a4e01803e52eda33070f56d63c8 \
+    rmcp-macros                      3.1.2  6898e24cd16342b59bfa8a53c2c04b9cf62fc8a2cfea57b9c038b09984bfc521 \
     rust-embed                      8.11.0  04113cb9355a377d83f06ef1f0a45b8ab8cd7d8b1288160717d66df5c7988d27 \
     rust-embed-impl                 8.11.0  da0902e4c7c8e997159ab384e6d0fc91c221375f6894346ae107f47dd0f3ccaa \
     rust-embed-utils                8.11.0  5bcdef0be6fe7f6fa333b1073c949729274b05f123a0ad7efcb8efd878e5c3b1 \
@@ -930,6 +933,7 @@ cargo.crates \
     symphonia-metadata               0.6.0  a31acf5cd623398a6208e2225d18f4b20f761c55098a796a5247ad516a4a8681 \
     syn                            1.0.109  72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237 \
     syn                            2.0.117  e665b8803e7b1d2a727f4023456bbbbe74da67099c585258af0ad9c5013b9b99 \
+    syn                              3.0.3  53e9bae58849f64dfa4f5d5ae372c8341f7305f82a3868709269343628b659a3 \
     sync_wrapper                     1.0.2  0bf256ce5efdfa370213c1dabab5935a12e49f2c58d15e9eac2870d3b4f27263 \
     synstructure                    0.13.2  728a70f3dbaf5bab7f0c4b1ac8d7ae5ea60a4b5549c8a5914361c99147a709d2 \
     syntect                          5.3.0  656b45c05d95a5704399aeef6bd0ddec7b2b3531b7c9e900abbf7c4d2190c925 \
@@ -1010,6 +1014,7 @@ cargo.crates \
     tree-sitter                    0.25.10  78f873475d258561b06f1c595d93308a7ed124d9977cb26b148c2084a4a3cc87 \
     tree-sitter-bash                0.25.1  9e5ec769279cc91b561d3df0d8a5deb26b0ad40d183127f409494d6d8fc53062 \
     tree-sitter-language             0.1.7  009994f150cc0cd50ff54917d5bc8bffe8cad10ca10d81c34da2ec421ae61782 \
+    tree-sitter-powershell          0.26.4  3faf304d44b9ddd4a7d97804bb8de7daf564336dd5a526dc6de5b39238243022 \
     tree_magic_mini                  3.2.2  b8765b90061cba6c22b5831f675da109ae5561588290f9fa2317adab2714d5a6 \
     triomphe                        0.1.15  dd69c5aa8f924c7519d6372789a74eac5b94fb0f8fcf0d4a97eb0bfc3e785f39 \
     try-lock                         0.2.5  e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b \
