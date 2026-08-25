@@ -1,0 +1,28 @@
+diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
+index da795477cd..cbe16a47a9 100644
+--- target/arm/hvf/hvf.c
++++ target/arm/hvf/hvf.c
+@@ -2590,11 +2590,21 @@ static int hvf_handle_vmexit(CPUState *cpu, hv_vcpu_exit_t *exit)
+         }
+         ret = hvf_handle_exception(cpu, &exit->exception);
+         break;
+-    case HV_EXIT_REASON_VTIMER_ACTIVATED:
++    case HV_EXIT_REASON_VTIMER_ACTIVATED: {
++        hv_return_t r;
++
+         assert(!hvf_irqchip_in_kernel());
+-        qemu_set_irq(arm_cpu->gt_timer_outputs[GTIMER_VIRT], 1);
++        /*
++         * Keep HVF's native vtimer signal from reaching the raw CPU IRQ
++         * input. With QEMU's emulated GIC, PPI 27 must be delivered only
++         * through the software interrupt controller.
++         */
++        r = hv_vcpu_set_vtimer_mask(cpu->accel->fd, true);
++        assert_hvf_ok(r);
+         cpu->accel->vtimer_masked = true;
++        qemu_set_irq(arm_cpu->gt_timer_outputs[GTIMER_VIRT], 1);
+         break;
++    }
+     case HV_EXIT_REASON_CANCELED:
+         /* we got kicked, no exit to process */
+         ret = -1;

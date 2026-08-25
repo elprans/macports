@@ -1,0 +1,43 @@
+diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
+index bd85ba5b23..da795477cd 100644
+--- target/arm/hvf/hvf.c
++++ target/arm/hvf/hvf.c
+@@ -2188,16 +2188,31 @@ static int hvf_sysreg_write(CPUState *cpu, uint32_t reg, uint64_t val)
+ /* Must be called by the owning thread */
+ static int hvf_inject_interrupts(CPUState *cpu)
+ {
+-    if (cpu_test_interrupt(cpu, CPU_INTERRUPT_FIQ)) {
+-        trace_hvf_inject_fiq();
+-        hv_vcpu_set_pending_interrupt(cpu->accel->fd, HV_INTERRUPT_TYPE_FIQ,
+-                                      true);
++    bool fiq = cpu_test_interrupt(cpu, CPU_INTERRUPT_FIQ);
++    bool irq = cpu_test_interrupt(cpu, CPU_INTERRUPT_HARD);
++
++    /*
++     * With the platform GIC, Hypervisor.framework delivers GIC interrupts
++     * directly, so the separate raw IRQ and FIQ inputs must stay lowered.
++     * With QEMU's emulated GIC these inputs are level-sensitive: synchronize
++     * both assertion and deassertion, or the guest keeps taking exceptions
++     * after it acknowledges the interrupt and ICC_IAR reports 1023.
++     */
++    if (hvf_irqchip_in_kernel()) {
++        fiq = false;
++        irq = false;
+     }
+ 
+-    if (cpu_test_interrupt(cpu, CPU_INTERRUPT_HARD)) {
++    hv_vcpu_set_pending_interrupt(cpu->accel->fd, HV_INTERRUPT_TYPE_FIQ,
++                                  fiq);
++    hv_vcpu_set_pending_interrupt(cpu->accel->fd, HV_INTERRUPT_TYPE_IRQ,
++                                  irq);
++
++    if (fiq) {
++        trace_hvf_inject_fiq();
++    }
++    if (irq) {
+         trace_hvf_inject_irq();
+-        hv_vcpu_set_pending_interrupt(cpu->accel->fd, HV_INTERRUPT_TYPE_IRQ,
+-                                      true);
+     }
+ 
+     return 0;

@@ -1,0 +1,19 @@
+diff --git hw/intc/arm_gicv3_hvf.c hw/intc/arm_gicv3_hvf.c
+index ae881092ea..7ca97c9579 100644
+--- hw/intc/arm_gicv3_hvf.c
++++ hw/intc/arm_gicv3_hvf.c
+@@ -600,7 +600,13 @@ static void hvf_gicv3_get(GICv3State *s)
+ static void hvf_gicv3_set_irq(void *opaque, int irq, int level)
+ {
+     GICv3State *s = opaque;
+-    if (irq > s->num_irq) {
++
++    /*
++     * The GPIO array contains SPIs first and then per-vCPU PPIs. Apple's
++     * platform GIC owns the architectural PPIs, while hv_gic_set_spi()
++     * accepts SPI INTIDs only.
++     */
++    if (irq >= s->num_irq - GIC_INTERNAL) {
+         return;
+     }
+     hv_gic_set_spi(GIC_INTERNAL + irq, !!level);

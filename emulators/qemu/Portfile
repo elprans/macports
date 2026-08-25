@@ -9,7 +9,7 @@ legacysupport.newest_darwin_requires_legacy 16
 
 name                    qemu
 version                 11.1.0
-revision                1
+revision                18
 categories              emulators
 license                 GPL-2+
 maintainers             {raimue @raimue} \
@@ -23,15 +23,12 @@ long_description        QEMU is a generic and open source machine emulator. \
                         achieves very good performance.
 
 homepage                https://www.qemu.org
-set commit              a85c588d07f8d3345ccad38b22026569a04571d1
-master_sites            https://gitlab.com/qemu-project/qemu/-/archive/${commit}/
-distname                qemu-${commit}
-distfiles               ${distname}.tar.gz
-worksrcdir              ${distname}
+master_sites            https://download.qemu.org/
+use_xz                  yes
 
-checksums               rmd160  ffa3dc64632fefe727375ca567ad5941a4442037 \
-                        sha256  eaa2550f9070e7438470e7f0fb330420f9e63e9102c7d2c32f4c5f2ff24ac24c \
-                        size    41320467
+checksums               rmd160  22e2026b2e6ba04daeb1c89039c4f5e350106c00 \
+                        sha256  6ee1d1a61f68212476b27108c26da5f449dc09b626d42f8279ba0dc2e08fa858 \
+                        size    141831772
 
 set py_branch           3.14
 set py_version          [string replace ${py_branch} 1 1]
@@ -76,6 +73,27 @@ patchfiles-append       patch-qemu-tcg-region.diff
 
 # HVF sysbus MMIO unmap workaround
 patchfiles-append       patch-qemu-accel-hvf-hvf-all.diff
+
+# Advertise the GICv3 system-register interface for Apple's platform GIC
+patchfiles-append       patch-qemu-hvf-platform-gic-id-register.diff
+
+# Leave MDCR_EL2 under HVF control when exposing nested virtualization
+patchfiles-append       patch-qemu-hvf-nested-skip-mdcr-el2.diff
+
+# Advertise AArch64 EL2 when Hypervisor.framework enables it
+patchfiles-append       patch-qemu-hvf-nested-advertise-el2.diff
+
+# Do not pass per-vCPU PPI GPIO indices to Apple's SPI-only API
+patchfiles-append       patch-qemu-hvf-gicv3-spi-range.diff
+
+# Do not inject raw HVF IRQ/FIQ signals when Apple's platform GIC owns them
+patchfiles-append       patch-qemu-hvf-platform-gic-no-raw-irq.diff
+
+# Route HVF virtual-timer activation exclusively through the emulated GIC
+patchfiles-append       patch-qemu-hvf-mask-vtimer-before-gic.diff
+
+# Rate-limited software-GIC, platform-GIC, and VTimer diagnostics
+patchfiles-append       patch-qemu-hvf-gic-diagnostics.diff
 
 # hfscompression workaround
 patchfiles-append       patch-qemu-block-file-posix.diff
@@ -133,7 +151,6 @@ configure.args-append   --disable-cocoa \
                         --disable-seccomp \
                         --enable-slirp \
                         --disable-linux-aio \
-                        --disable-glusterfs \
                         --disable-rdma \
                         --disable-libssh \
                         --disable-vnc \
@@ -309,4 +326,6 @@ platform darwin 8 {
     build.cmd ${prefix}/bin/gmake
 }
 
-livecheck.type  none
+livecheck.type  regex
+livecheck.url   [lindex ${master_sites} 0]
+livecheck.regex ${name}-(\\d+(?:\\.\\d+)*)(?:-\\d+)*\\.tar

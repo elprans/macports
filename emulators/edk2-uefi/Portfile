@@ -4,7 +4,7 @@ PortSystem              1.0
 
 name                    edk2-uefi
 version                 202602
-revision                14
+revision                19
 categories              emulators
 license                 {BSD MIT}
 maintainers             nomaintainer
@@ -88,8 +88,9 @@ checksums               ${edk2_tag}.tar.gz \
 
 extract.mkdir           no
 worksrcdir              edk2-${edk2_tag}
-patchfiles-append       patch-edk2-macports-build-paths-and-debug-symbols.diff
-patch.pre_args          -p1
+patchfiles-append       patch-edk2-macports-build-paths-and-debug-symbols.diff \
+                        patch-edk2-armvirt-vgic-handoff-trace.diff
+patch.pre_args          -p1 -l
 
 depends_build-append    port:python314 \
                         port:gmake \
@@ -488,14 +489,15 @@ destroot {
                 edk2_install_debug_tree \
                     ${worksrcpath}/${shell_out_dir} \
                     ${destroot}${edk2_debug_root}/${shell_out_dir}
+
+                # Keep AArch64 DEBUG firmware available for manual diagnosis,
+                # but do not advertise it to libvirt. It currently triggers an
+                # invalid data-abort assertion in QEMU's HVF accelerator.
+                continue
             }
 
             set descriptor_tags {}
             set descriptor_prefix 60
-            if {${build_target} eq "DEBUG"} {
-                set descriptor_tags [list debug]
-                set descriptor_prefix 80
-            }
 
             edk2_write_qemu_firmware_spec \
                 ${qemu_firmware_dir}/${descriptor_prefix}-edk2-uefi-aarch64${output_suffix}.json \
@@ -509,9 +511,6 @@ destroot {
                 ${descriptor_tags}
 
             set secure_prefix 40
-            if {${build_target} eq "DEBUG"} {
-                set secure_prefix 70
-            }
 
             edk2_write_qemu_firmware_spec \
                 ${qemu_firmware_dir}/${secure_prefix}-edk2-uefi-aarch64${output_suffix}-secure-enrolled.json \

@@ -1,0 +1,14 @@
+diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
+index 3be0b6155f..7779ce0123 100644
+--- target/arm/hvf/hvf.c
++++ target/arm/hvf/hvf.c
+@@ -1225,6 +1225,9 @@ static bool hvf_arm_get_host_cpu_features(ARMHostCPUFeatures *ahcf)
+     }
+ 
+     if (hvf_nested_virt_enabled()) {
++        /* HVF exposes AArch64 EL2 even though the host ID register does not. */
++        FIELD_DP64_IDREG(&host_isar, ID_AA64PFR0, EL2, 1);
++
+         /* SME is not implemented with nested virt on the Apple side */
+         FIELD_DP64_IDREG(&host_isar, ID_AA64PFR1, SME, 0);
+     }

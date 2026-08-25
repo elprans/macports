@@ -1,0 +1,20 @@
+diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
+index da3ec521fc..3be0b6155f 100644
+--- target/arm/hvf/hvf.c
++++ target/arm/hvf/hvf.c
+@@ -1437,6 +1437,15 @@ int hvf_arch_init_vcpu(CPUState *cpu)
+             continue;
+         }
+ 
++        /*
++         * Hypervisor.framework rejects writes to MDCR_EL2 when EL2 is
++         * enabled, including an attempt to restore its reset value. Leave
++         * the register under HVF's control instead of aborting vCPU startup.
++         */
++        if (hvf_id == HV_SYS_REG_MDCR_EL2) {
++            continue;
++        }
++
+         if (ri) {
+             assert(!(ri->type & ARM_CP_NO_RAW));
+             arm_cpu->cpreg_indexes[sregs_cnt++] = kvm_id;

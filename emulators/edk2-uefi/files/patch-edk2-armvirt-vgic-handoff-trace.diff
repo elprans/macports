@@ -1,0 +1,264 @@
+diff --git a/ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf b/ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
+index b775ed77b4..02970b7405 100644
+--- a/ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
++++ b/ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
+@@ -42,5 +42,6 @@
+   DebugLib
+   PrintLib
++  SerialPortLib
+   MemoryAllocationLib
+   UefiDriverEntryPoint
+   IoLib
+diff --git a/ArmPkg/Drivers/ArmGicDxe/ArmGicV3Dxe.inf b/ArmPkg/Drivers/ArmGicDxe/ArmGicV3Dxe.inf
+index 5d87e9490d..ea5d8ac49a 100644
+--- a/ArmPkg/Drivers/ArmGicDxe/ArmGicV3Dxe.inf
++++ b/ArmPkg/Drivers/ArmGicDxe/ArmGicV3Dxe.inf
+@@ -43,5 +43,6 @@
+   PcdLib
+   PrintLib
++  SerialPortLib
+   TimerLib
+   UefiBootServicesTableLib
+   UefiDriverEntryPoint
+diff --git a/ArmPkg/Drivers/ArmGicDxe/GicV3/ArmGicV3Dxe.c b/ArmPkg/Drivers/ArmGicDxe/GicV3/ArmGicV3Dxe.c
+index 4860a77d16..cd84f423cf 100644
+--- a/ArmPkg/Drivers/ArmGicDxe/GicV3/ArmGicV3Dxe.c
++++ b/ArmPkg/Drivers/ArmGicDxe/GicV3/ArmGicV3Dxe.c
+@@ -6,6 +6,7 @@
+ **/
+ 
+ #include <Library/ArmGicLib.h>
++#include <Library/SerialPortLib.h>
+ 
+ #include "ArmGicDxe.h"
+ #include "Base.h"
+@@ -37,6 +39,19 @@ STATIC HARDWARE_INTERRUPT_HANDLER  *mRegisteredInterruptHandlers;
+ STATIC UINTN                       mGicMaxSpiIntId;
+ STATIC UINTN                       mGicMaxExtSpiIntId;
+ 
++STATIC UINTN  mGicV3IrqTraceCount;
++
++#define GIC_V3_TRACE(Message)  SerialPortWrite ((UINT8 *)(Message), sizeof (Message) - 1)
++
++STATIC
++BOOLEAN
++GicV3ShouldTraceIrq (
++  IN UINTN  Count
++  )
++{
++  return (Count <= 32) || ((Count & (Count - 1)) == 0);
++}
++
+ /**
+  * Return the base address of the GIC redistributor for the current CPU
+  *
+@@ -488,24 +513,45 @@ GicV3IrqInterruptHandler (
+ {
+   UINTN                       GicInterrupt;
+   HARDWARE_INTERRUPT_HANDLER  *InterruptHandlerPtr;
++  BOOLEAN                     TraceThisIrq;
++
++  TraceThisIrq = GicV3ShouldTraceIrq (++mGicV3IrqTraceCount);
+ 
+   GicInterrupt = ArmGicV3AcknowledgeInterrupt ();
+ 
++  if (TraceThisIrq) {
++    GIC_V3_TRACE ("EDK2-VGIC IRQ enter\n");
++  }
++
+   if (GicCommonSourceIsSpecialInterrupt (GicInterrupt)) {
+     // The special interrupts do not need to be acknowledged.
++    if (TraceThisIrq) {
++      GIC_V3_TRACE ("EDK2-VGIC IRQ special-return\n");
++    }
++
+     return;
+   }
+ 
+   InterruptHandlerPtr = GicV3GetHandlerAddress (GicInterrupt);
+   if (InterruptHandlerPtr == NULL) {
++    GIC_V3_TRACE ("EDK2-VGIC IRQ invalid\n");
+     DEBUG ((DEBUG_ERROR, "Interrupt 0x%x out of expected range\n", GicInterrupt));
+     return;
+   }
+ 
+   if (*InterruptHandlerPtr != NULL) {
+     // Call the registered interrupt handler.
++    if (TraceThisIrq) {
++      GIC_V3_TRACE ("EDK2-VGIC IRQ dispatch\n");
++    }
++
+     (*InterruptHandlerPtr)(GicInterrupt, SystemContext);
++
++    if (TraceThisIrq) {
++      GIC_V3_TRACE ("EDK2-VGIC IRQ return\n");
++    }
+   } else {
++    GIC_V3_TRACE ("EDK2-VGIC IRQ spurious\n");
+     DEBUG ((DEBUG_ERROR, "Spurious GIC interrupt: 0x%x\n", (UINT32)GicInterrupt));
+     GicV3EndOfInterrupt (&gHardwareInterruptV3Protocol, GicInterrupt);
+   }
+@@ -723,19 +811,29 @@ GicV3ExitBootServicesEvent (
+ {
+   UINTN  Index;
+ 
++  GIC_V3_TRACE ("EDK2-VGIC GIC ExitBootServices enter\n");
++
+   // Acknowledge all pending interrupts in SPI range.
+   for (Index = 0; Index <= mGicMaxSpiIntId; Index++) {
+     GicV3DisableInterruptSource (&gHardwareInterruptV3Protocol, Index);
+   }
+ 
++  GIC_V3_TRACE ("EDK2-VGIC GIC ExitBootServices SPI-disabled\n");
++
+   // Acknowledge all pending interrupts in extended SPI range.
+   for (Index = ARM_GIC_ARCH_EXT_SPI_MIN; Index <= mGicMaxExtSpiIntId; Index++) {
+     GicV3DisableInterruptSource (&gHardwareInterruptV3Protocol, Index);
+   }
+ 
++  GIC_V3_TRACE ("EDK2-VGIC GIC ExitBootServices ESPI-disabled\n");
++
+   // Disable Gic Interface
+   ArmGicV3DisableInterruptInterface ();
+ 
++  GIC_V3_TRACE ("EDK2-VGIC GIC ExitBootServices interface-disabled\n");
++
+   // Disable Gic Distributor
+   ArmGicDisableDistributor (mGicDistributorBase);
++
++  GIC_V3_TRACE ("EDK2-VGIC GIC ExitBootServices done\n");
+ }
+diff --git a/ArmPkg/Drivers/TimerDxe/TimerDxe.c b/ArmPkg/Drivers/TimerDxe/TimerDxe.c
+index 4b74d9c197..c36350bb73 100644
+--- a/ArmPkg/Drivers/TimerDxe/TimerDxe.c
++++ b/ArmPkg/Drivers/TimerDxe/TimerDxe.c
+@@ -12,6 +12,7 @@
+ #include <Library/DebugLib.h>
+ #include <Library/BaseMemoryLib.h>
+ #include <Library/UefiBootServicesTableLib.h>
++#include <Library/SerialPortLib.h>
+ #include <Library/UefiLib.h>
+ #include <Library/PcdLib.h>
+ #include <Library/IoLib.h>
+@@ -39,6 +41,8 @@ UINT64  mElapsedPeriod = 1;
+ // Cached copy of the Hardware Interrupt protocol instance
+ EFI_HARDWARE_INTERRUPT_PROTOCOL  *gInterrupt = NULL;
+ 
++#define TIMER_TRACE(Message)  SerialPortWrite ((UINT8 *)(Message), sizeof (Message) - 1)
++
+ /**
+   This function registers the handler NotifyFunction so it is called every time
+   the timer interrupt fires.  It also passes the amount of time since the last
+@@ -96,5 +117,9 @@ ExitBootServicesEvent (
+   IN VOID       *Context
+   )
+ {
++  TIMER_TRACE ("EDK2-VGIC TIMER ExitBootServices enter\n");
++
+   ArmGenericTimerDisableTimer ();
++
++  TIMER_TRACE ("EDK2-VGIC TIMER ExitBootServices done\n");
+ }
+@@ -140,6 +174,9 @@ TimerDriverSetTimerPeriod (
+ 
+   // Always disable the timer
+   ArmGenericTimerDisableTimer ();
++  if (TimerPeriod == 0) {
++    TIMER_TRACE ("EDK2-VGIC TIMER SetTimerPeriod zero\n");
++  }
+ 
+   if (TimerPeriod != 0) {
+     // mTimerTicks = TimerPeriod in 1ms unit x Frequency.10^-3
+diff --git a/ArmPkg/Drivers/TimerDxe/TimerDxe.inf b/ArmPkg/Drivers/TimerDxe/TimerDxe.inf
+index 24856bd12c..7243c6e273 100644
+--- a/ArmPkg/Drivers/TimerDxe/TimerDxe.inf
++++ b/ArmPkg/Drivers/TimerDxe/TimerDxe.inf
+@@ -36,5 +36,6 @@
+   BaseMemoryLib
+   DebugLib
+   UefiDriverEntryPoint
++  SerialPortLib
+   IoLib
+   ArmGenericTimerCounterLib
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain.inf b/MdeModulePkg/Core/Dxe/DxeMain.inf
+index 319f777e8c..fb91f3b231 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain.inf
++++ b/MdeModulePkg/Core/Dxe/DxeMain.inf
+@@ -97,6 +97,7 @@
+   PcdLib
+   ImagePropertiesRecordLib
+   OrderedCollectionLib
++  SerialPortLib
+ 
+ [Guids]
+   gEfiEventMemoryMapChangeGuid                  ## PRODUCES             ## Event
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
+index 06a9b6f7b7..9c0a8eaef7 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
++++ b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
+@@ -8,4 +8,8 @@
+ 
+ #include "DxeMain.h"
++#include <Library/SerialPortLib.h>
++
++#define EXIT_BOOT_SERVICES_TRACE(Message)  SerialPortWrite ((UINT8 *)(Message), sizeof (Message) - 1)
++
+ 
+ //
+@@ -779,6 +800,8 @@ CoreExitBootServices (
+ {
+   EFI_STATUS  Status;
+ 
++  EXIT_BOOT_SERVICES_TRACE ("EDK2-VGIC CORE ExitBootServices enter\n");
++
+   //
+   // Notify other drivers of their last chance to use boot services
+   // before the memory map is terminated.
+@@ -793,6 +816,8 @@ CoreExitBootServices (
+   //
+   gTimer->SetTimerPeriod (gTimer, 0);
+ 
++  EXIT_BOOT_SERVICES_TRACE ("EDK2-VGIC CORE ExitBootServices timer-period-zero\n");
++
+   //
+   // Terminate memory services if the MapKey matches
+   //
+@@ -803,10 +828,13 @@ CoreExitBootServices (
+     //
+     CoreNotifySignalList (&gEventExitBootServicesFailedGuid);
++    EXIT_BOOT_SERVICES_TRACE ("EDK2-VGIC CORE ExitBootServices map-failed\n");
+     return Status;
+   }
+ 
+   gMemoryMapTerminated = TRUE;
+ 
++  EXIT_BOOT_SERVICES_TRACE ("EDK2-VGIC CORE ExitBootServices map-terminated\n");
++
+   //
+   // Notify other drivers that we are exiting boot services.
+   //
+@@ -815,4 +844,6 @@ CoreExitBootServices (
+ 
++  EXIT_BOOT_SERVICES_TRACE ("EDK2-VGIC CORE ExitBootServices callbacks-done\n");
++
+   //
+   // Report that ExitBootServices() has been called
+   //
+@@ -838,6 +869,8 @@ CoreExitBootServices (
+   //
+   gCpu->DisableInterrupt (gCpu);
+ 
++  EXIT_BOOT_SERVICES_TRACE ("EDK2-VGIC CORE ExitBootServices cpu-irqs-disabled\n");
++
+   //
+   // Clear the non-runtime values of the EFI System Table
+   //
+@@ -860,6 +893,8 @@ CoreExitBootServices (
+   // Update the AtRuntime field in Runtiem AP.
+   //
+   gRuntime->AtRuntime = TRUE;
++
++  EXIT_BOOT_SERVICES_TRACE ("EDK2-VGIC CORE ExitBootServices return\n");
+ 
+   return Status;
+ }

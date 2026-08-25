@@ -1,0 +1,338 @@
+diff --git hw/intc/arm_gicv3_cpuif.c hw/intc/arm_gicv3_cpuif.c
+index 67a0bba4b0..2a467f6076 100644
+--- hw/intc/arm_gicv3_cpuif.c
++++ hw/intc/arm_gicv3_cpuif.c
+@@ -16,6 +16,7 @@
+ #include "qemu/bitops.h"
+ #include "qemu/log.h"
+ #include "qemu/main-loop.h"
++#include "qemu/timer.h"
+ #include "qapi/error.h"
+ #include "trace.h"
+ #include "gicv3_internal.h"
+@@ -27,6 +28,82 @@
+ #include "system/tcg.h"
+ #include "system/qtest.h"
+ 
++#define GICV3_DEBUG_MAX_CPUS 256
++#define GICV3_DEBUG_DUMP_NS NANOSECONDS_PER_SECOND
++
++typedef struct GICv3DebugState {
++    uint64_t last_dump_ns;
++    uint64_t update_count;
++    uint64_t irq_high_count;
++    uint64_t fiq_high_count;
++    uint64_t iar1_count;
++    uint64_t iar1_spurious_count;
++    int last_irqlevel;
++    int last_fiqlevel;
++    int last_nmilevel;
++} GICv3DebugState;
++
++static GICv3DebugState gicv3_debug[GICV3_DEBUG_MAX_CPUS];
++
++static int icc_highest_active_prio(GICv3CPUState *cs);
++static bool icc_hppi_can_preempt(GICv3CPUState *cs);
++static uint64_t icc_hppir1_value(GICv3CPUState *cs, CPUARMState *env);
++
++static GICv3DebugState *gicv3_debug_state(GICv3CPUState *cs)
++{
++    int index = cs->cpu->cpu_index;
++
++    if (index < 0 || index >= GICV3_DEBUG_MAX_CPUS) {
++        return NULL;
++    }
++    return &gicv3_debug[index];
++}
++
++static void gicv3_debug_dump_spurious(GICv3CPUState *cs, CPUARMState *env,
++                                      const char *path, uint64_t intid)
++{
++    GICv3DebugState *ds = gicv3_debug_state(cs);
++    uint64_t now = qemu_clock_get_ns(QEMU_CLOCK_REALTIME);
++
++    if (!ds || (ds->last_dump_ns &&
++                now - ds->last_dump_ns < GICV3_DEBUG_DUMP_NS)) {
++        return;
++    }
++    ds->last_dump_ns = now;
++
++    fprintf(stderr,
++            "qemu-gicv3-debug: path=%s intid=%" PRIu64
++            " hcr=%" PRIx64 " raw_hcr=%" PRIx64
++            " cpu=%d updates=%" PRIu64 " irq_hi=%" PRIu64
++            " fiq_hi=%" PRIu64 " iar1=%" PRIu64
++            " spurious=%" PRIu64 " lines=%d/%d/%d"
++            " hppi=%d/%u/%d/%d can_preempt=%d hppir1=%" PRIu64
++            " igrpen=%" PRIx64 "/%" PRIx64 "/%" PRIx64
++            " pmr=%" PRIx64 " rprio=%x gicd_ctlr=%x"
++            " el=%d secure=%d irqreq=%x"
++            " redist_en=%08x pend=%08x active=%08x group=%08x mod=%08x\n",
++            path, intid, arm_hcr_el2_eff(env), env->cp15.hcr_el2,
++            cs->cpu->cpu_index, ds->update_count, ds->irq_high_count,
++            ds->fiq_high_count, ds->iar1_count, ds->iar1_spurious_count,
++            ds->last_irqlevel, ds->last_fiqlevel, ds->last_nmilevel,
++            cs->hppi.irq, cs->hppi.prio, cs->hppi.grp, cs->hppi.nmi,
++            icc_hppi_can_preempt(cs), icc_hppir1_value(cs, env),
++            cs->icc_igrpen[GICV3_G0], cs->icc_igrpen[GICV3_G1],
++            cs->icc_igrpen[GICV3_G1NS], cs->icc_pmr_el1,
++            icc_highest_active_prio(cs), cs->gic->gicd_ctlr,
++            arm_current_el(env), arm_is_secure(env),
++            qatomic_read(&cs->cpu->interrupt_request), cs->gicr_ienabler0,
++            cs->gicr_ipendr0, cs->gicr_iactiver0,
++            cs->gicr_igroupr0, cs->gicr_igrpmodr0);
++    fflush(stderr);
++
++    ds->update_count = 0;
++    ds->irq_high_count = 0;
++    ds->fiq_high_count = 0;
++    ds->iar1_count = 0;
++    ds->iar1_spurious_count = 0;
++}
++
+ /*
+  * Special case return value from hppvi_index(); must be larger than
+  * the architecturally maximum possible list register index (which is 15)
+@@ -1052,6 +1129,7 @@ void gicv3_cpuif_update(GICv3CPUState *cs)
+     int nmilevel = 0;
+     ARMCPU *cpu = ARM_CPU(cs->cpu);
+     CPUARMState *env = &cpu->env;
++    GICv3DebugState *ds = gicv3_debug_state(cs);
+ 
+     g_assert(bql_locked());
+ 
+@@ -1095,6 +1173,15 @@ void gicv3_cpuif_update(GICv3CPUState *cs)
+         }
+     }
+ 
++    if (ds) {
++        ds->update_count++;
++        ds->irq_high_count += irqlevel;
++        ds->fiq_high_count += fiqlevel;
++        ds->last_irqlevel = irqlevel;
++        ds->last_fiqlevel = fiqlevel;
++        ds->last_nmilevel = nmilevel;
++    }
++
+     trace_gicv3_cpuif_set_irqs(gicv3_redist_affid(cs), fiqlevel, irqlevel);
+ 
+     qemu_set_irq(cs->parent_fiq, fiqlevel);
+@@ -1286,11 +1373,20 @@ static uint64_t icc_iar0_read(CPUARMState *env, const ARMCPRegInfo *ri)
+ static uint64_t icc_iar1_read(CPUARMState *env, const ARMCPRegInfo *ri)
+ {
+     GICv3CPUState *cs = icc_cs_from_env(env);
++    GICv3DebugState *ds = gicv3_debug_state(cs);
+     int el = arm_current_el(env);
+     uint64_t intid;
+ 
+     if (icv_access(env, HCR_IMO)) {
+-        return icv_iar_read(env, ri);
++        intid = icv_iar_read(env, ri);
++        if (ds) {
++            ds->iar1_count++;
++            if (intid == INTID_SPURIOUS) {
++                ds->iar1_spurious_count++;
++                gicv3_debug_dump_spurious(cs, env, "icv", intid);
++            }
++        }
++        return intid;
+     }
+ 
+     if (!icc_hppi_can_preempt(cs)) {
+@@ -1308,6 +1404,13 @@ static uint64_t icc_iar1_read(CPUARMState *env, const ARMCPRegInfo *ri)
+     }
+ 
+     trace_gicv3_icc_iar1_read(gicv3_redist_affid(cs), intid);
++    if (ds) {
++        ds->iar1_count++;
++        if (intid == INTID_SPURIOUS) {
++            ds->iar1_spurious_count++;
++            gicv3_debug_dump_spurious(cs, env, "icc", intid);
++        }
++    }
+     return intid;
+ }
+ 
+diff --git include/system/hvf_int.h include/system/hvf_int.h
+index a01691ce17..3306408efa 100644
+--- include/system/hvf_int.h
++++ include/system/hvf_int.h
+@@ -48,6 +48,9 @@ struct AccelCPUState {
+ #ifdef __aarch64__
+     hv_vcpu_exit_t *exit;
+     bool vtimer_masked;
++    uint64_t vtimer_exit_count;
++    uint64_t vtimer_sync_count;
++    uint64_t vgic_cancel_count;
+     bool guest_debug_enabled;
+     struct QEMUTimer *wfi_timer;
+ #endif
+diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
+index cbe16a47a9..4d9609fdcc 100644
+--- target/arm/hvf/hvf.c
++++ target/arm/hvf/hvf.c
+@@ -2335,6 +2335,29 @@ static void hvf_sync_vtimer(CPUState *cpu)
+     r = hv_vcpu_get_sys_reg(cpu->accel->fd, HV_SYS_REG_CNTV_CTL_EL0, &ctl);
+     assert_hvf_ok(r);
+ 
++    cpu->accel->vtimer_sync_count++;
++    if ((cpu->accel->vtimer_sync_count &
++         (cpu->accel->vtimer_sync_count - 1)) == 0) {
++        uint64_t cval, pc;
++
++        r = hv_vcpu_get_sys_reg(cpu->accel->fd,
++                                HV_SYS_REG_CNTV_CVAL_EL0, &cval);
++        assert_hvf_ok(r);
++        r = hv_vcpu_get_reg(cpu->accel->fd, HV_REG_PC, &pc);
++        assert_hvf_ok(r);
++        fprintf(stderr,
++                "qemu-hvf-vtimer-debug: event=sync cpu=%d count=%" PRIu64
++                " ctl=%#" PRIx64 " cval=%#" PRIx64 " now=%#" PRIx64
++                " delta=%" PRId64 " pc=%#" PRIx64
++                " irqreq=%#x masked=%d\n",
++                cpu->cpu_index, cpu->accel->vtimer_sync_count, ctl, cval,
++                hvf_vtimer_val_raw(),
++                (int64_t)(cval - hvf_vtimer_val_raw()), pc,
++                qatomic_read(&cpu->interrupt_request),
++                cpu->accel->vtimer_masked);
++        fflush(stderr);
++    }
++
+     irq_state = (ctl & (TMR_CTL_ENABLE | TMR_CTL_IMASK | TMR_CTL_ISTATUS)) ==
+                 (TMR_CTL_ENABLE | TMR_CTL_ISTATUS);
+     qemu_set_irq(arm_cpu->gt_timer_outputs[GTIMER_VIRT], irq_state);
+@@ -2592,8 +2615,32 @@ static int hvf_handle_vmexit(CPUState *cpu, hv_vcpu_exit_t *exit)
+         break;
+     case HV_EXIT_REASON_VTIMER_ACTIVATED: {
+         hv_return_t r;
++        uint64_t ctl, cval, pc, now;
+ 
+         assert(!hvf_irqchip_in_kernel());
++        cpu->accel->vtimer_exit_count++;
++        if ((cpu->accel->vtimer_exit_count &
++             (cpu->accel->vtimer_exit_count - 1)) == 0) {
++            r = hv_vcpu_get_sys_reg(cpu->accel->fd,
++                                    HV_SYS_REG_CNTV_CTL_EL0, &ctl);
++            assert_hvf_ok(r);
++            r = hv_vcpu_get_sys_reg(cpu->accel->fd,
++                                    HV_SYS_REG_CNTV_CVAL_EL0, &cval);
++            assert_hvf_ok(r);
++            r = hv_vcpu_get_reg(cpu->accel->fd, HV_REG_PC, &pc);
++            assert_hvf_ok(r);
++            now = hvf_vtimer_val_raw();
++            fprintf(stderr,
++                    "qemu-hvf-vtimer-debug: event=exit cpu=%d count=%" PRIu64
++                    " ctl=%#" PRIx64 " cval=%#" PRIx64 " now=%#" PRIx64
++                    " delta=%" PRId64 " pc=%#" PRIx64
++                    " irqreq=%#x masked=%d\n",
++                    cpu->cpu_index, cpu->accel->vtimer_exit_count, ctl, cval,
++                    now, (int64_t)(cval - now), pc,
++                    qatomic_read(&cpu->interrupt_request),
++                    cpu->accel->vtimer_masked);
++            fflush(stderr);
++        }
+         /*
+          * Keep HVF's native vtimer signal from reaching the raw CPU IRQ
+          * input. With QEMU's emulated GIC, PPI 27 must be delivered only
+@@ -2606,6 +2653,101 @@ static int hvf_handle_vmexit(CPUState *cpu, hv_vcpu_exit_t *exit)
+         break;
+     }
+     case HV_EXIT_REASON_CANCELED:
++        if (hvf_irqchip_in_kernel()) {
++            hv_return_t r;
++            uint64_t pc, elr, spsr, ctl, cval, gicd_ctlr;
++            uint64_t group, enable, pending, active, cfg1, prio;
++            uint64_t sre, icc_ctlr, igrpen0, igrpen1, pmr;
++            bool raw_irq, raw_fiq, vtimer_mask;
++
++            cpu->accel->vgic_cancel_count++;
++            if ((cpu->accel->vgic_cancel_count &
++                 (cpu->accel->vgic_cancel_count - 1)) == 0) {
++                r = hv_vcpu_get_reg(cpu->accel->fd, HV_REG_PC, &pc);
++                assert_hvf_ok(r);
++                r = hv_vcpu_get_sys_reg(cpu->accel->fd,
++                                        HV_SYS_REG_ELR_EL1, &elr);
++                assert_hvf_ok(r);
++                r = hv_vcpu_get_sys_reg(cpu->accel->fd,
++                                        HV_SYS_REG_SPSR_EL1, &spsr);
++                assert_hvf_ok(r);
++                r = hv_vcpu_get_sys_reg(cpu->accel->fd,
++                                        HV_SYS_REG_CNTV_CTL_EL0, &ctl);
++                assert_hvf_ok(r);
++                r = hv_vcpu_get_sys_reg(cpu->accel->fd,
++                                        HV_SYS_REG_CNTV_CVAL_EL0, &cval);
++                assert_hvf_ok(r);
++                r = hv_gic_get_distributor_reg(
++                    HV_GIC_DISTRIBUTOR_REG_GICD_CTLR, &gicd_ctlr);
++                assert_hvf_ok(r);
++                r = hv_gic_get_redistributor_reg(
++                    cpu->accel->fd, HV_GIC_REDISTRIBUTOR_REG_GICR_IGROUPR0,
++                    &group);
++                assert_hvf_ok(r);
++                r = hv_gic_get_redistributor_reg(
++                    cpu->accel->fd, HV_GIC_REDISTRIBUTOR_REG_GICR_ISENABLER0,
++                    &enable);
++                assert_hvf_ok(r);
++                r = hv_gic_get_redistributor_reg(
++                    cpu->accel->fd, HV_GIC_REDISTRIBUTOR_REG_GICR_ISPENDR0,
++                    &pending);
++                assert_hvf_ok(r);
++                r = hv_gic_get_redistributor_reg(
++                    cpu->accel->fd, HV_GIC_REDISTRIBUTOR_REG_GICR_ISACTIVER0,
++                    &active);
++                assert_hvf_ok(r);
++                r = hv_gic_get_redistributor_reg(
++                    cpu->accel->fd, HV_GIC_REDISTRIBUTOR_REG_GICR_ICFGR1,
++                    &cfg1);
++                assert_hvf_ok(r);
++                r = hv_gic_get_redistributor_reg(
++                    cpu->accel->fd,
++                    HV_GIC_REDISTRIBUTOR_REG_GICR_IPRIORITYR0 + 24, &prio);
++                assert_hvf_ok(r);
++                r = hv_gic_get_icc_reg(cpu->accel->fd,
++                                       HV_GIC_ICC_REG_SRE_EL1, &sre);
++                assert_hvf_ok(r);
++                r = hv_gic_get_icc_reg(cpu->accel->fd,
++                                       HV_GIC_ICC_REG_CTLR_EL1, &icc_ctlr);
++                assert_hvf_ok(r);
++                r = hv_gic_get_icc_reg(cpu->accel->fd,
++                                       HV_GIC_ICC_REG_IGRPEN0_EL1, &igrpen0);
++                assert_hvf_ok(r);
++                r = hv_gic_get_icc_reg(cpu->accel->fd,
++                                       HV_GIC_ICC_REG_IGRPEN1_EL1, &igrpen1);
++                assert_hvf_ok(r);
++                r = hv_gic_get_icc_reg(cpu->accel->fd,
++                                       HV_GIC_ICC_REG_PMR_EL1, &pmr);
++                assert_hvf_ok(r);
++                r = hv_vcpu_get_pending_interrupt(
++                    cpu->accel->fd, HV_INTERRUPT_TYPE_IRQ, &raw_irq);
++                assert_hvf_ok(r);
++                r = hv_vcpu_get_pending_interrupt(
++                    cpu->accel->fd, HV_INTERRUPT_TYPE_FIQ, &raw_fiq);
++                assert_hvf_ok(r);
++                r = hv_vcpu_get_vtimer_mask(cpu->accel->fd, &vtimer_mask);
++                assert_hvf_ok(r);
++                fprintf(stderr,
++                        "qemu-hvf-vgic-debug: cpu=%d count=%" PRIu64
++                        " pc=%#" PRIx64 " elr=%#" PRIx64
++                        " spsr=%#" PRIx64
++                        " timer=%#" PRIx64 "/%#" PRIx64 "/%d"
++                        " gicd=%#" PRIx64
++                        " group=%#" PRIx64 " enable=%#" PRIx64
++                        " pending=%#" PRIx64 " active=%#" PRIx64
++                        " cfg1=%#" PRIx64 " prio24_27=%#" PRIx64
++                        " sre=%#" PRIx64 " ctlr=%#" PRIx64
++                        " igrpen=%#" PRIx64 "/%#" PRIx64
++                        " pmr=%#" PRIx64 " raw=%d/%d irqreq=%#x\n",
++                        cpu->cpu_index, cpu->accel->vgic_cancel_count, pc,
++                        elr, spsr, ctl, cval, vtimer_mask, gicd_ctlr,
++                        group, enable, pending, active,
++                        cfg1, prio, sre, icc_ctlr, igrpen0, igrpen1, pmr,
++                        raw_irq, raw_fiq,
++                        qatomic_read(&cpu->interrupt_request));
++                fflush(stderr);
++            }
++        }
+         /* we got kicked, no exit to process */
+         ret = -1;
+         break;
