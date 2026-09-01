@@ -21,3 +21,4 @@ lat:
 This graph describes why each port exists in the local overlay and how it differs from the default MacPorts tree.
 
 - [[ports]] — Inventory and per-port design notes
+- [[commits]] — Repository commit scope and message requirements
