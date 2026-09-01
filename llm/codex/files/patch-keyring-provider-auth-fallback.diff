@@ -1,17 +1,17 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 471c342ff9..c3de1c9204 100644
+index b1c6a2ac96..e19791ce05 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3739,6 +3739,7 @@ name = "codex-model-provider-info"
+@@ -3799,6 +3799,7 @@ name = "codex-model-provider-info"
  version = "0.0.0"
  dependencies = [
   "codex-api",
 + "codex-keyring-store",
   "codex-protocol",
   "codex-utils-absolute-path",
-  "http 1.4.0",
+  "codex-utils-redacted-string",
 diff --git a/codex-rs/model-provider-info/Cargo.toml b/codex-rs/model-provider-info/Cargo.toml
-index da018acf66..0c8a0cf259 100644
+index 827dd8744b..648086bdb5 100644
 --- a/codex-rs/model-provider-info/Cargo.toml
 +++ b/codex-rs/model-provider-info/Cargo.toml
 @@ -14,6 +14,7 @@ workspace = true
@@ -20,10 +20,10 @@ index da018acf66..0c8a0cf259 100644
  codex-api = { workspace = true }
 +codex-keyring-store = { workspace = true }
  codex-protocol = { workspace = true }
+ codex-utils-redacted-string = { workspace = true }
  http = { workspace = true }
- schemars = { workspace = true }
 diff --git a/codex-rs/model-provider-info/src/lib.rs b/codex-rs/model-provider-info/src/lib.rs
-index 3d58aadd7a..01c7e6fc78 100644
+index 65e2e4cbf7..6b35120eee 100644
 --- a/codex-rs/model-provider-info/src/lib.rs
 +++ b/codex-rs/model-provider-info/src/lib.rs
 @@ -7,10 +7,14 @@
@@ -39,9 +39,9 @@ index 3d58aadd7a..01c7e6fc78 100644
  use codex_protocol::error::EnvVarError;
 +use codex_protocol::error::KeyringRecordError;
  use codex_protocol::error::Result as CodexResult;
+ use codex_utils_redacted_string::RedactedString;
  use http::HeaderMap;
- use http::header::HeaderName;
-@@ -27,6 +31,8 @@ const DEFAULT_STREAM_IDLE_TIMEOUT_MS: u64 = 300_000;
+@@ -28,6 +32,8 @@ const DEFAULT_STREAM_IDLE_TIMEOUT_MS: u64 = 300_000;
  const DEFAULT_STREAM_MAX_RETRIES: u64 = 5;
  const DEFAULT_REQUEST_MAX_RETRIES: u64 = 4;
  const DEFAULT_AWS_AUTH_REFRESH_TIMEOUT_MS: u64 = 300_000;
@@ -50,7 +50,7 @@ index 3d58aadd7a..01c7e6fc78 100644
  pub const DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS: u64 = 15_000;
  /// Hard cap for user-configured `stream_max_retries`.
  const MAX_STREAM_MAX_RETRIES: u64 = 100;
-@@ -325,25 +331,72 @@ impl ModelProviderInfo {
+@@ -333,25 +339,72 @@ impl ModelProviderInfo {
          })
      }
  
@@ -141,7 +141,7 @@ index 3d58aadd7a..01c7e6fc78 100644
  
      /// Effective maximum number of request retries for this provider.
 diff --git a/codex-rs/model-provider-info/src/model_provider_info_tests.rs b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
-index cb8dd5cfc9..7c0051a8ca 100644
+index d08af0ffb5..970df4beb1 100644
 --- a/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 +++ b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 @@ -1,4 +1,6 @@
@@ -151,7 +151,7 @@ index cb8dd5cfc9..7c0051a8ca 100644
  use codex_utils_absolute_path::AbsolutePathBuf;
  use codex_utils_absolute_path::AbsolutePathBufGuard;
  use pretty_assertions::assert_eq;
-@@ -592,6 +594,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
+@@ -597,6 +599,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
      );
  }
  
@@ -202,10 +202,10 @@ index cb8dd5cfc9..7c0051a8ca 100644
  fn test_validate_provider_aws_rejects_websockets() {
      let provider = ModelProviderInfo {
 diff --git a/codex-rs/protocol/src/error.rs b/codex-rs/protocol/src/error.rs
-index 65ed48e035..2652224e1c 100644
+index 1b4cf067fc..e1c9f57634 100644
 --- a/codex-rs/protocol/src/error.rs
 +++ b/codex-rs/protocol/src/error.rs
-@@ -180,6 +180,8 @@ pub enum CodexErrorDetails {
+@@ -187,6 +187,8 @@ pub enum CodexErrorDetails {
      TokioJoin(#[from] JoinError),
      #[error("{0}")]
      EnvVar(EnvVarError),
@@ -214,7 +214,7 @@ index 65ed48e035..2652224e1c 100644
  }
  
  impl From<&CodexErr> for CodexErrKind {
-@@ -341,6 +343,7 @@ impl CodexErr {
+@@ -348,6 +350,7 @@ impl CodexErr {
          LandlockPathFd(error: landlock::PathFdError),
          TokioJoin(error: JoinError),
          EnvVar(error: EnvVarError),
@@ -222,7 +222,7 @@ index 65ed48e035..2652224e1c 100644
      );
  
      // TODO(anp): Remove this compatibility constructor once callers construct
-@@ -367,6 +370,7 @@ impl CodexErr {
+@@ -374,6 +377,7 @@ impl CodexErr {
              | CodexErrorDetails::SessionBudgetExceeded
              | CodexErrorDetails::Interrupted
              | CodexErrorDetails::EnvVar(_)
@@ -230,7 +230,7 @@ index 65ed48e035..2652224e1c 100644
              | CodexErrorDetails::Fatal(_)
              | CodexErrorDetails::UsageNotIncluded
              | CodexErrorDetails::QuotaExceeded
-@@ -813,6 +817,40 @@ impl std::fmt::Display for EnvVarError {
+@@ -828,6 +832,40 @@ impl std::fmt::Display for EnvVarError {
      }
  }
  

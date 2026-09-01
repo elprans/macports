@@ -789,8 +789,8 @@ cargo.crates \
     resolv-conf                      0.7.6  1e061d1b48cb8d38042de4ae0a7a6401009d6143dc80d2e2d6f31f0bdd6470c7 \
     rfc6979                          0.4.0  f8dd2a808d456c4a54e300a23e9f5a67e122c3024119acbfd73e3bf664491cb2 \
     ring                           0.17.14  a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7 \
-    rmcp                             3.1.2  c8dddc5b1924b9a59fba420166160ca2c4663a4e01803e52eda33070f56d63c8 \
-    rmcp-macros                      3.1.2  6898e24cd16342b59bfa8a53c2c04b9cf62fc8a2cfea57b9c038b09984bfc521 \
+    rmcp                             3.1.3  5f17072af977b0f86f714dbd64b3d37d0715bb63064f9d13483f0a1775813374 \
+    rmcp-macros                      3.1.3  54817231d63a35330d5c3a5782a4a166fbe3b914a9faab440d3dd8bd37971890 \
     rust-embed                      8.11.0  04113cb9355a377d83f06ef1f0a45b8ab8cd7d8b1288160717d66df5c7988d27 \
     rust-embed-impl                 8.11.0  da0902e4c7c8e997159ab384e6d0fc91c221375f6894346ae107f47dd0f3ccaa \
     rust-embed-utils                8.11.0  5bcdef0be6fe7f6fa333b1073c949729274b05f123a0ad7efcb8efd878e5c3b1 \

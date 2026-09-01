@@ -5,9 +5,9 @@ PortGroup           app 1.1
 PortGroup           cargo 1.0
 PortGroup           github 1.0
 
-github.setup        openai codex 0.149.0 rust-v
+github.setup        openai codex 0.151.0 rust-v
 github.tarball_from archive
-revision            0
+revision            1
 
 categories          llm
 maintainers         {@takebayashi} openmaintainer
@@ -34,9 +34,9 @@ long_description    Codex CLI is OpenAI’s coding agent that you can run locall
                     It can read, change, and run code on your machine in the selected directory.
 
 checksums           ${distname}${extract.suffix} \
-                    rmd160  3b00fee66d2ba91f93744e5b75043f88d817fb62 \
-                    sha256  3c20d9bb8eb707939472ff9058868f2ac09e885674ebd72261a9db4c8705c2e4 \
-                    size    12118986
+                    rmd160  c4d930f62aadcb13f386f6bebdf7cb2fa74359d3 \
+                    sha256  17f37b9c2f98e00ce297b813355a1b41cd22882c3def89be84a250069bff0a02 \
+                    size    12882074
 
 # Load the crate list before expanding ${distpath} below. The Rust PortGroup
 # switches dist_subdir to cargo-crates when cargo.crates is nonempty.
@@ -117,7 +117,7 @@ patch.cmd           ${prefix}/bin/git
 patch.pre_args      apply --binary
 patch.dir           ${workpath}/${distname}
 patchfiles          patch-keyring-provider-auth-fallback.diff \
-                    patch-vercel-ai-gateway-thread-cost.diff
+                    patch-provider-reported-thread-cost.diff
 
 # Companion binary the code-mode tool spawns; codex resolves it from the
 # directory containing the codex executable itself, so it must live alongside

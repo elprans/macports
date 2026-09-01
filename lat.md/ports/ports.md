@@ -10,6 +10,47 @@ Reroll patches from that checkout against the exact source revision packaged by 
 
 Use the configured Lat external-source mirror when one exists. Patch-bearing ports may add further checkout-specific guidance, such as [[codex#Version bumps|Codex's Rust-cache workflow]].
 
+## Agent maintenance commands
+
+The trusted project layer authorizes only the commands below; a matching root-owned sudoers fragment enforces exact arguments for privileged MacPorts maintenance.
+
+Codex loads `.codex/rules/macports-overlay.rules` for this root. `/private/etc/sudoers.d/macports-agent-maintenance` consolidates the exact privileged grants; always use `sudo -n` so agents fail instead of waiting for a password.
+
+Codex maintenance uses these exact commands:
+
+```sh
+/opt/local/bin/port lint --nitpick codex
+sudo -n /opt/local/bin/port -q checksum codex
+sudo -n /opt/local/bin/port -N clean codex
+sudo -n /opt/local/bin/port -N clean --all codex
+sudo -n /opt/local/bin/port -N extract codex
+sudo -n /opt/local/bin/port -N patch codex
+sudo -n /opt/local/bin/port -N configure codex
+sudo -n /opt/local/bin/port -N build codex
+sudo -n /opt/local/bin/port -N test codex
+sudo -n /opt/local/bin/port -N destroot codex
+sudo -n /opt/local/bin/port -N -n -s upgrade --force codex
+```
+
+QEMU maintenance retains these exact commands:
+
+```sh
+sudo -n /opt/local/bin/port -N clean qemu
+sudo -n /opt/local/bin/port -N clean --all qemu
+sudo -n /opt/local/bin/port -N patch qemu
+sudo -n /opt/local/bin/port -N -n -s upgrade --force qemu
+```
+
+EDK2 maintenance retains these exact commands:
+
+```sh
+sudo -n /opt/local/bin/port -N clean edk2-uefi
+sudo -n /opt/local/bin/port -N clean --all edk2-uefi
+sudo -n /opt/local/bin/port -N -n -s upgrade --force edk2-uefi
+```
+
+Do not append variants, options, extra ports, shell redirections, or compound commands. Add any new command explicitly to the rules, sudoers fragment, and this section before using it.
+
 ## Upstream shadows
 
 These ports take precedence over an existing MacPorts port and must be reviewed against the default tree before their local copy is updated or removed.

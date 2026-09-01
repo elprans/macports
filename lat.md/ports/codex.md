@@ -1,6 +1,6 @@
 # codex
 
-The [Portfile](../../llm/codex/Portfile) packages Codex 0.149.0 with local macOS integration and two feature patches beyond the default MacPorts recipe.
+The [Portfile](../../llm/codex/Portfile) packages Codex 0.151.0 with local macOS integration and two feature patches beyond the default MacPorts recipe.
 
 ## Difference from MacPorts
 
@@ -12,10 +12,26 @@ The build uses Codex-published V8 pointer-compression and sandbox assets, option
 
 ## Local features
 
-One patch lets custom provider `env_key` authentication fall back to the OS keyring when enabled, extending [[codex:codex-rs/model-provider-info/src/lib.rs#ModelProviderInfo#api_key]]. The other estimates and reports Vercel AI Gateway generation and thread cost through the existing [[codex:codex-rs/app-server-protocol/src/protocol/v2/thread.rs#ThreadTokenUsage]] contract.
+The local patches add opt-in keyring fallback for custom-provider credentials and complete provider-cost accounting in Codex's native thread-cost model.
+
+Keyring fallback extends [[codex:codex-rs/model-provider-info/src/lib.rs#ModelProviderInfo#api_key]]. Cost tracking treats upstream `usage_metadata.amount` as authoritative. If Vercel AI Gateway omits it, Codex authenticates `GET /v1/generation?id=...` and retries after 5, 15, and 60 seconds for the settled `total_cost`.
+
+Totals use fixed-point USD micros and persist total, post-fork incremental cost, and completeness with token-count rollout events. They flow through [[codex:codex-rs/app-server-protocol/src/protocol/v2/thread.rs#ThreadTokenUsage]] into the footer, title, status line, `/status`, and exit summary without requiring backend usage access.
+
+The `/cost` command and status surfaces read project totals from one indexed SQLite aggregate and never scan rollout JSONL synchronously. If SQLite is unavailable, cost fails immediately instead of falling back to rollout parsing.
+
+A project is the normalized Git root, or normalized working directory outside Git, and includes persisted active and archived threads. Startup reconciles distinct stored working directories, and live metadata changes update project identity and cost rows immediately after durable token-count appends.
+
+A cursor- and fingerprint-driven background backfill parses lightweight rollout envelopes under the rollout maintenance lock with bounded concurrency and batched SQLite writes. During backfill, `/cost` returns the indexed subtotal immediately and prefixes it with `~` if any matching thread is missing, stale, or incomplete.
+
+Project aggregation counts each root thread's total and each fork's post-fork increment. It preserves ordinal, history-base, timestamp fallback, copied, referenced, reverted, and partial-history semantics; revert switches the selected rollout and cost row atomically, using an incomplete zero row if reconstruction fails.
+
+Dollar displays round fixed-point micros to cents and use Codex's locale-aware integer grouping helper. The exit summary adds `Cost` after token usage, and a thread with no observed charge displays `$0.00` rather than `unavailable`.
 
 ## Version bumps
 
-Following the overlay-wide [[ports#Patch maintenance|patch-maintenance rule]], every Codex version bump requires rebasing its local patches against the new upstream revision in `~/dev/mirrors/codex`.
+Following the overlay-wide [[ports#Patch maintenance|patch-maintenance rule]], every Codex version bump requires semantically rerolling its local patches against the new upstream revision in `~/dev/mirrors/codex`.
 
-Perform the rebase and validation directly in that mirror checkout so repeated Cargo builds reuse its Rust build cache. Once the patches apply and build cleanly, export the refreshed patch files back into the port before updating its release metadata and checksums.
+Review upstream changes before editing: remove behavior now supplied upstream, adapt local behavior to new native abstractions, and preserve the desired end state instead of replaying old hunks. Build in the mirror to reuse its Rust cache, then export the reviewed diff into the port.
+
+Run the resulting Portfile through the exact [[ports#Agent maintenance commands|agent maintenance commands]] authorized for Codex; phase-specific commands isolate failures before the final source-only upgrade.
