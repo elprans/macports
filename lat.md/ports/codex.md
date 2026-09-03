@@ -12,7 +12,9 @@ The build uses Codex-published V8 pointer-compression and sandbox assets, option
 
 ## Local features
 
-The local patches add opt-in keyring fallback for custom-provider credentials and complete provider-cost accounting in Codex's native thread-cost model.
+Three local patches add opt-in keyring fallback, complete provider-cost accounting, and per-connection system DNS refresh for sandbox proxy traffic.
+
+Sandbox TCP connections resolve direct targets and upstream proxy hostnames through the operating system for every connection, so persistent Codex processes follow network DNS changes. Address-family filtering preserves OS order, and resolved private addresses remain subject to final target policy.
 
 Keyring fallback extends [[codex:codex-rs/model-provider-info/src/lib.rs#ModelProviderInfo#api_key]]. Cost tracking treats upstream `usage_metadata.amount` as authoritative. If Vercel AI Gateway omits it, Codex authenticates `GET /v1/generation?id=...` and retries after 5, 15, and 60 seconds for the settled `total_cost`.
 
