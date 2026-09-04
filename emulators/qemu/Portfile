@@ -9,7 +9,7 @@ legacysupport.newest_darwin_requires_legacy 16
 
 name                    qemu
 version                 11.1.0
-revision                18
+revision                19
 categories              emulators
 license                 GPL-2+
 maintainers             {raimue @raimue} \
@@ -91,9 +91,6 @@ patchfiles-append       patch-qemu-hvf-platform-gic-no-raw-irq.diff
 
 # Route HVF virtual-timer activation exclusively through the emulated GIC
 patchfiles-append       patch-qemu-hvf-mask-vtimer-before-gic.diff
-
-# Rate-limited software-GIC, platform-GIC, and VTimer diagnostics
-patchfiles-append       patch-qemu-hvf-gic-diagnostics.diff
 
 # hfscompression workaround
 patchfiles-append       patch-qemu-block-file-posix.diff
