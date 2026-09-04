@@ -1,6 +1,6 @@
 # codex
 
-The [Portfile](../../llm/codex/Portfile) packages Codex 0.151.0 with local macOS integration and two feature patches beyond the default MacPorts recipe.
+The [Portfile](../../llm/codex/Portfile) packages Codex 0.151.0 with local macOS integration and four feature patches beyond the default MacPorts recipe.
 
 ## Difference from MacPorts
 
@@ -12,7 +12,9 @@ The build uses Codex-published V8 pointer-compression and sandbox assets, option
 
 ## Local features
 
-Three local patches add opt-in keyring fallback, complete provider-cost accounting, and per-connection system DNS refresh for sandbox proxy traffic.
+Four local patches add opt-in keyring fallback, complete provider-cost accounting, per-connection system DNS refresh, and proxy-independent Unix-socket access in restricted macOS sandboxes.
+
+Restricted sessions retain configured Unix-socket allowlists when the managed TCP proxy is disabled. Seatbelt merges, canonicalizes, and deduplicates all socket grants without starting a proxy or granting TCP/IP access; allow-all dominates.
 
 Sandbox TCP connections resolve direct targets and upstream proxy hostnames through the operating system for every connection, so persistent Codex processes follow network DNS changes. Address-family filtering preserves OS order, and resolved private addresses remain subject to final target policy.
 

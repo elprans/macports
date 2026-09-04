@@ -7,7 +7,7 @@ PortGroup           github 1.0
 
 github.setup        openai codex 0.151.0 rust-v
 github.tarball_from archive
-revision            2
+revision            3
 
 categories          llm
 maintainers         {@takebayashi} openmaintainer
@@ -118,7 +118,8 @@ patch.pre_args      apply --binary
 patch.dir           ${workpath}/${distname}
 patchfiles          patch-keyring-provider-auth-fallback.diff \
                     patch-provider-reported-thread-cost.diff \
-                    patch-sandbox-dns-refresh.diff
+                    patch-sandbox-dns-refresh.diff \
+                    patch-sandbox-unix-sockets.diff
 
 # Companion binary the code-mode tool spawns; codex resolves it from the
 # directory containing the codex executable itself, so it must live alongside
