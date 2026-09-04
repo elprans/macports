@@ -1,6 +1,6 @@
 # Port inventory
 
-The overlay contains 24 ports. Twelve shadow ports in the default MacPorts tree, while twelve add software that the default tree does not currently package.
+The overlay contains 25 ports. Thirteen shadow ports in the default MacPorts tree, while twelve add software that the default tree does not currently package.
 
 ## Patch maintenance
 
@@ -67,6 +67,7 @@ These ports take precedence over an existing MacPorts port and must be reviewed 
 - [[glib2]] — Older GLib point release lacking later MacPorts maintenance
 - [[codex]] — Newer Codex with signing, V8 assets, and local feature patches
 - [[opencode]] — Straightforward older OpenCode pin
+- [[sccache]] — Newer sccache release with regenerated offline Cargo sources
 
 ## Overlay-only ports
 
