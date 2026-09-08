@@ -5,7 +5,7 @@ PortGroup           github  1.0
 PortGroup           cmake   1.1
 
 epoch               3
-github.setup        FreeRDP FreeRDP 3.25.0
+github.setup        FreeRDP FreeRDP 3.31.1
 github.tarball_from releases
 categories          net
 license             Apache
@@ -16,9 +16,9 @@ long_description    FreeRDP is a free implementation of the Remote Desktop Proto
 
 homepage            https://www.freerdp.com
 
-checksums           rmd160  d6d31546ffc82917e3cb61fc892bcaf91f7d84b2 \
-                    sha256  2d8f8ef34f607f4c5b978e3d0d96d936d88099f4918d21ba84ac334a89219f7f \
-                    size    11489543
+checksums           rmd160  31f7a0bbd41833dbc004253578c3468f64403b94 \
+                    sha256  4a2629026896cb4e26fb8ed2d6ca6aa4ab89ca95528dfbae2550c2f6bc866991 \
+                    size    11111567
 
 depends_build-append \
                     path:bin/pkg-config:pkgconfig

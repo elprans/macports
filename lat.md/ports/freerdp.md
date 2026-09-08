@@ -1,6 +1,6 @@
 # FreeRDP
 
-The [Portfile](../../net/FreeRDP/Portfile) advances the existing MacPorts FreeRDP recipe from 3.17.2 revision 1 to 3.25.0.
+The [Portfile](../../net/FreeRDP/Portfile) advances the existing MacPorts FreeRDP recipe from 3.17.2 revision 1 to 3.31.1.
 
 ## Difference from MacPorts
 
