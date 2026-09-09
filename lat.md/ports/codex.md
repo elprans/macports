@@ -1,10 +1,10 @@
 # codex
 
-The [Portfile](../../llm/codex/Portfile) packages Codex 0.151.0 with local macOS integration and four feature patches beyond the default MacPorts recipe.
+The [Portfile](../../llm/codex/Portfile) packages Codex 0.153.4 with local macOS integration and four feature patches beyond the default MacPorts recipe.
 
 ## Difference from MacPorts
 
-The default tree is at 0.146.0. The overlay adds local signing, a companion binary, specialized V8 inputs, and feature patches.
+The default tree is at 0.152.1. The overlay advances Codex to 0.153.4 and adds local signing, optional sccache, conservative build resource controls, and four feature patches.
 
 It signs `codex` and `codex-code-mode-host` with a stable local identity, hardened runtime, and dylib-loading entitlements, and installs both companion binaries together.
 
@@ -23,6 +23,10 @@ Keyring fallback extends [[codex:codex-rs/model-provider-info/src/lib.rs#ModelPr
 Totals use fixed-point USD micros and persist total, post-fork incremental cost, and completeness with token-count rollout events. They flow through [[codex:codex-rs/app-server-protocol/src/protocol/v2/thread.rs#ThreadTokenUsage]] into the footer, title, status line, `/status`, and exit summary without requiring backend usage access.
 
 The `/cost` command and status surfaces read project totals from one indexed SQLite aggregate and never scan rollout JSONL synchronously. If SQLite is unavailable, cost fails immediately instead of falling back to rollout parsing.
+
+The cost schema is initialized outside SQLx history by [[codex:codex-rs/state/src/migrations.rs#ensure_local_thread_cost_schema]] after upstream migrations run. An immediate transaction makes its column check and idempotent index/table DDL safe across concurrent startups.
+
+All numbered state migrations remain upstream-owned. Local cost-schema additions evolve through rerunnable startup DDL and never add or rewrite `_sqlx_migrations` rows.
 
 A project is the normalized Git root, or normalized working directory outside Git, and includes persisted active and archived threads. Startup reconciles distinct stored working directories, and live metadata changes update project identity and cost rows immediately after durable token-count appends.
 

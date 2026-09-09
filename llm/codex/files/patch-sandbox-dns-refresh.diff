@@ -1,8 +1,8 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 0c8f1721bd..366626a450 100644
+index 3dd25a8841..c76906465e 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3848,6 +3848,7 @@ dependencies = [
+@@ -3916,6 +3916,7 @@ dependencies = [
   "globset",
   "pretty_assertions",
   "rama-core",

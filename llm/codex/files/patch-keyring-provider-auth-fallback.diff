@@ -1,8 +1,8 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index b1c6a2ac96..e19791ce05 100644
+index e217b70249..8f3b71bca1 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3799,6 +3799,7 @@ name = "codex-model-provider-info"
+@@ -3867,6 +3867,7 @@ name = "codex-model-provider-info"
  version = "0.0.0"
  dependencies = [
   "codex-api",
@@ -23,7 +23,7 @@ index 827dd8744b..648086bdb5 100644
  codex-utils-redacted-string = { workspace = true }
  http = { workspace = true }
 diff --git a/codex-rs/model-provider-info/src/lib.rs b/codex-rs/model-provider-info/src/lib.rs
-index 65e2e4cbf7..6b35120eee 100644
+index 3fb3e87a2a..0e7b3280af 100644
 --- a/codex-rs/model-provider-info/src/lib.rs
 +++ b/codex-rs/model-provider-info/src/lib.rs
 @@ -7,10 +7,14 @@
@@ -50,7 +50,7 @@ index 65e2e4cbf7..6b35120eee 100644
  pub const DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS: u64 = 15_000;
  /// Hard cap for user-configured `stream_max_retries`.
  const MAX_STREAM_MAX_RETRIES: u64 = 100;
-@@ -333,25 +339,72 @@ impl ModelProviderInfo {
+@@ -334,25 +340,72 @@ impl ModelProviderInfo {
          })
      }
  

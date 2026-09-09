@@ -1,5 +1,5 @@
 diff --git a/codex-rs/core/src/config/config_tests.rs b/codex-rs/core/src/config/config_tests.rs
-index 3a4554456f..892e6785d6 100644
+index 8796f539b6..02c2d92292 100644
 --- a/codex-rs/core/src/config/config_tests.rs
 +++ b/codex-rs/core/src/config/config_tests.rs
 @@ -37,6 +37,8 @@ use codex_config::permissions_toml::NetworkMitmActionToml;
@@ -11,7 +11,7 @@ index 3a4554456f..892e6785d6 100644
  use codex_config::permissions_toml::PermissionProfileToml;
  use codex_config::permissions_toml::PermissionsToml;
  use codex_config::permissions_toml::WorkspaceRootsToml;
-@@ -1758,6 +1760,71 @@ async fn network_proxy_feature_is_no_op_without_sandbox_network() -> std::io::Re
+@@ -1747,6 +1749,71 @@ async fn network_proxy_feature_is_no_op_without_sandbox_network() -> std::io::Re
      Ok(())
  }
  
@@ -84,10 +84,10 @@ index 3a4554456f..892e6785d6 100644
  async fn network_proxy_feature_matrix_preserves_sandbox_network_semantics() -> std::io::Result<()> {
      #[derive(Clone, Copy)]
 diff --git a/codex-rs/core/src/config/mod.rs b/codex-rs/core/src/config/mod.rs
-index 96da2f76f8..df36f9a20b 100644
+index dca329ab98..8ad1cc4cf1 100644
 --- a/codex-rs/core/src/config/mod.rs
 +++ b/codex-rs/core/src/config/mod.rs
-@@ -545,14 +545,12 @@ impl Permissions {
+@@ -547,14 +547,12 @@ impl Permissions {
      }
  }
  
@@ -107,7 +107,7 @@ index 96da2f76f8..df36f9a20b 100644
          PermissionProfile::Disabled => false,
      }
  }
-@@ -586,7 +584,7 @@ fn build_network_proxy_spec(
+@@ -588,7 +586,7 @@ fn build_network_proxy_spec(
      Ok(if has_network_requirements {
          Some(network)
      } else {
@@ -116,7 +116,7 @@ index 96da2f76f8..df36f9a20b 100644
      })
  }
  
-@@ -3466,7 +3464,7 @@ impl Config {
+@@ -3478,7 +3476,7 @@ impl Config {
              let (file_system_sandbox_policy, _network_sandbox_policy) =
                  permission_profile.to_runtime_permissions();
              let configured_network_proxy_config =
@@ -125,7 +125,7 @@ index 96da2f76f8..df36f9a20b 100644
                      && profiles_are_active
                  {
                      // PermissionProfile carries the active network sandbox bit, not the configured
-@@ -4459,9 +4457,9 @@ impl Config {
+@@ -4487,9 +4485,9 @@ impl Config {
          active_permission_profile: &ActivePermissionProfile,
          permission_profile: &PermissionProfile,
      ) -> std::io::Result<Option<NetworkProxySpec>> {
@@ -171,10 +171,10 @@ index d7921ac05f..659fc1a302 100644
          host_and_port_from_network_addr(&self.config.proxy_url, /*default_port*/ 3128)
      }
 diff --git a/codex-rs/core/src/session/tests.rs b/codex-rs/core/src/session/tests.rs
-index d996753ff5..ee89f19051 100644
+index 6c8d0ffa65..3a4f42a7ca 100644
 --- a/codex-rs/core/src/session/tests.rs
 +++ b/codex-rs/core/src/session/tests.rs
-@@ -1485,14 +1485,21 @@ async fn workspace_write_turns_continue_to_expose_managed_network_proxy() -> any
+@@ -1497,14 +1497,21 @@ async fn workspace_write_turns_continue_to_expose_managed_network_proxy() -> any
  #[tokio::test]
  async fn disabled_managed_network_does_not_start_or_expose_proxy() -> anyhow::Result<()> {
      let permission_profile = PermissionProfile::workspace_write();
@@ -198,7 +198,7 @@ index d996753ff5..ee89f19051 100644
      let (session, rx) = make_session_with_config_and_rx(move |config| {
          config
 diff --git a/codex-rs/core/src/tools/runtimes/unified_exec.rs b/codex-rs/core/src/tools/runtimes/unified_exec.rs
-index 1c89697568..8d4195d836 100644
+index aea36d9f48..1da06ef74a 100644
 --- a/codex-rs/core/src/tools/runtimes/unified_exec.rs
 +++ b/codex-rs/core/src/tools/runtimes/unified_exec.rs
 @@ -4,6 +4,7 @@ Runtime: unified exec
@@ -209,7 +209,7 @@ index 1c89697568..8d4195d836 100644
  use crate::exec::ExecCapturePolicy;
  use crate::exec::ExecExpiration;
  use crate::guardian::GUARDIAN_REVIEW_TIMEOUT;
-@@ -284,6 +285,14 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
+@@ -286,6 +287,14 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
              req.network.as_ref(),
              launch_sandbox_permissions,
          ));
@@ -224,7 +224,7 @@ index 1c89697568..8d4195d836 100644
          let env = exec_env_for_sandbox_permissions(&req.env, launch_sandbox_permissions);
          let (mut env, managed_network_context, network_proxy_launch) = match managed_network {
              Some(network) if environment_is_remote => {
-@@ -310,7 +319,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
+@@ -312,7 +321,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
                          })?);
                  }
                  if !launch.proxy.enabled {
@@ -233,7 +233,7 @@ index 1c89697568..8d4195d836 100644
                  } else {
                      let environment_info =
                          req.turn_environment
-@@ -345,7 +354,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
+@@ -347,7 +356,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
                      })?;
                  (prepared.env, Some(prepared.sandbox_context), None)
              }
@@ -256,10 +256,10 @@ index 0a9e1fe114..5d1bfeaa03 100644
      let command = || SandboxCommand {
          program: "/bin/bash".into(),
 diff --git a/codex-rs/core/src/unified_exec/process_manager_tests.rs b/codex-rs/core/src/unified_exec/process_manager_tests.rs
-index 5db327ecea..b64070072e 100644
+index 523e7eb513..e29c67b30d 100644
 --- a/codex-rs/core/src/unified_exec/process_manager_tests.rs
 +++ b/codex-rs/core/src/unified_exec/process_manager_tests.rs
-@@ -144,6 +144,8 @@ fn exec_server_params_use_path_uri_and_env_policy_overlay_contract() {
+@@ -154,6 +154,8 @@ fn exec_server_params_use_path_uri_and_env_policy_overlay_contract() {
      let managed_network = ManagedNetworkSandboxContext {
          loopback_ports: vec![43123],
          allow_local_binding: false,
@@ -455,7 +455,7 @@ index 8172645e13..79619c96b1 100644
              );
          }
 diff --git a/codex-rs/sandboxing/src/seatbelt.rs b/codex-rs/sandboxing/src/seatbelt.rs
-index ca11e5b9cf..1d63709eae 100644
+index ab60605015..14d6e8957e 100644
 --- a/codex-rs/sandboxing/src/seatbelt.rs
 +++ b/codex-rs/sandboxing/src/seatbelt.rs
 @@ -142,42 +142,46 @@ fn proxy_policy_inputs(
