@@ -59,7 +59,6 @@ These ports take precedence over an existing MacPorts port and must be reviewed 
 - [[libvirt]] — Newer libvirt plus protected configuration and launchd services
 - [[qemu]] — QEMU patch carrier for Apple HVF and Arm interrupt behavior
 - [[py-libvirt]] — Binding version kept in lockstep with local libvirt
-- [[powershell]] — Official binary-archive installation instead of a source build
 - [[gstreamer1-gst-plugins-base]] — Older GStreamer base with Cocoa GL header conflict handling
 - [[py-virtualfish]] — Older project lineage and Python compatibility set
 - [[gobject-introspection]] — Stale revision of the same 1.86.0 release
