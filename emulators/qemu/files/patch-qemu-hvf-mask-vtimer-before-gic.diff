@@ -1,8 +1,8 @@
 diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
-index da795477cd..cbe16a47a9 100644
+index f0d32b42f5..9785a3df98 100644
 --- target/arm/hvf/hvf.c
 +++ target/arm/hvf/hvf.c
-@@ -2590,11 +2590,21 @@ static int hvf_handle_vmexit(CPUState *cpu, hv_vcpu_exit_t *exit)
+@@ -2602,11 +2602,21 @@ static int hvf_handle_vmexit(CPUState *cpu, hv_vcpu_exit_t *exit)
          }
          ret = hvf_handle_exception(cpu, &exit->exception);
          break;

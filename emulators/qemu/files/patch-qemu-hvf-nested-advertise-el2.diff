@@ -1,5 +1,5 @@
 diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
-index 3be0b6155f..7779ce0123 100644
+index b70296150d..bba8361643 100644
 --- target/arm/hvf/hvf.c
 +++ target/arm/hvf/hvf.c
 @@ -1225,6 +1225,9 @@ static bool hvf_arm_get_host_cpu_features(ARMHostCPUFeatures *ahcf)

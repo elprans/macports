@@ -1,5 +1,5 @@
 diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
-index da3ec521fc..3be0b6155f 100644
+index bd85ba5b23..b70296150d 100644
 --- target/arm/hvf/hvf.c
 +++ target/arm/hvf/hvf.c
 @@ -1437,6 +1437,15 @@ int hvf_arch_init_vcpu(CPUState *cpu)

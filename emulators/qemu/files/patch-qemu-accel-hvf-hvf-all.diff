@@ -1,4 +1,6 @@
---- accel/hvf/hvf-all.c.orig
+diff --git accel/hvf/hvf-all.c accel/hvf/hvf-all.c
+index 8bd9154a50..2d489665db 100644
+--- accel/hvf/hvf-all.c
 +++ accel/hvf/hvf-all.c
 @@ -120,6 +120,9 @@ static void hvf_set_phys_mem(MemoryRegionSection *section, bool add)
      if (!add) {

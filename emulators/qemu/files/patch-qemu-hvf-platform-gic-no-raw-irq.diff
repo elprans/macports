@@ -1,8 +1,8 @@
 diff --git target/arm/hvf/hvf.c target/arm/hvf/hvf.c
-index bd85ba5b23..da795477cd 100644
+index bba8361643..f0d32b42f5 100644
 --- target/arm/hvf/hvf.c
 +++ target/arm/hvf/hvf.c
-@@ -2188,16 +2188,31 @@ static int hvf_sysreg_write(CPUState *cpu, uint32_t reg, uint64_t val)
+@@ -2200,16 +2200,31 @@ static int hvf_sysreg_write(CPUState *cpu, uint32_t reg, uint64_t val)
  /* Must be called by the owning thread */
  static int hvf_inject_interrupts(CPUState *cpu)
  {

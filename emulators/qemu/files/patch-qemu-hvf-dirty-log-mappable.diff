@@ -1,0 +1,72 @@
+diff --git accel/hvf/hvf-all.c accel/hvf/hvf-all.c
+index 2d489665db..7d8a7a01e2 100644
+--- accel/hvf/hvf-all.c
++++ accel/hvf/hvf-all.c
+@@ -88,12 +88,23 @@ void hvf_unprotect_dirty_range(hwaddr addr, size_t size)
+                      HV_MEMORY_READ | HV_MEMORY_WRITE | HV_MEMORY_EXEC);
+ }
+ 
++static bool hvf_section_is_mappable(MemoryRegionSection *section)
++{
++    MemoryRegion *area = section->mr;
++    uint64_t page_size = qemu_real_host_page_size();
++    uint64_t gpa = section->offset_within_address_space;
++    uint64_t size = int128_get64(section->size);
++
++    return (memory_region_is_ram(area) || memory_region_is_romd(area)) &&
++           QEMU_IS_ALIGNED(gpa, page_size) &&
++           QEMU_IS_ALIGNED(size, page_size);
++}
++
+ static void hvf_set_phys_mem(MemoryRegionSection *section, bool add)
+ {
+     MemoryRegion *area = section->mr;
+     bool writable = !area->readonly && !area->rom_device;
+     hv_memory_flags_t flags;
+-    uint64_t page_size = qemu_real_host_page_size();
+     uint64_t gpa = section->offset_within_address_space;
+     uint64_t size = int128_get64(section->size);
+     hv_return_t ret;
+@@ -111,9 +122,8 @@ static void hvf_set_phys_mem(MemoryRegionSection *section, bool add)
+         }
+     }
+ 
+-    if (!QEMU_IS_ALIGNED(size, page_size) ||
+-        !QEMU_IS_ALIGNED(gpa, page_size)) {
+-        /* Not page aligned, so we can not map as RAM */
++    if (!hvf_section_is_mappable(section)) {
++        /* This section cannot be mapped as HVF RAM. */
+         add = false;
+     }
+ 
+@@ -142,7 +152,7 @@ static void hvf_log_start(MemoryListener *listener,
+                           MemoryRegionSection *section, int old, int new)
+ {
+     assert(new != 0);
+-    if (old == 0) {
++    if (old == 0 && hvf_section_is_mappable(section)) {
+         hvf_protect_clean_range(section->offset_within_address_space,
+                                 int128_get64(section->size));
+     }
+@@ -152,7 +162,7 @@ static void hvf_log_stop(MemoryListener *listener,
+                          MemoryRegionSection *section, int old, int new)
+ {
+     assert(old != 0);
+-    if (new == 0) {
++    if (new == 0 && hvf_section_is_mappable(section)) {
+         hvf_unprotect_dirty_range(section->offset_within_address_space,
+                                   int128_get64(section->size));
+     }
+@@ -166,8 +176,10 @@ static void hvf_log_clear(MemoryListener *listener,
+      * Some number of those pages may have been dirtied and
+      * the write permission enabled.  Reset the range read-only.
+      */
+-    hvf_protect_clean_range(section->offset_within_address_space,
+-                            int128_get64(section->size));
++    if (hvf_section_is_mappable(section)) {
++        hvf_protect_clean_range(section->offset_within_address_space,
++                                int128_get64(section->size));
++    }
+ }
+ 
+ static void hvf_region_add(MemoryListener *listener,
