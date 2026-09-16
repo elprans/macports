@@ -1,0 +1,167 @@
+diff --git a/codex-rs/sandboxing/src/seatbelt.rs b/codex-rs/sandboxing/src/seatbelt.rs
+index 14d6e8957e..77ddb20cad 100644
+--- a/codex-rs/sandboxing/src/seatbelt.rs
++++ b/codex-rs/sandboxing/src/seatbelt.rs
+@@ -327,6 +327,7 @@ fn dynamic_network_policy_for_network(
+             policy.push_str("; allow local binding and loopback traffic\n");
+             policy.push_str("(allow network-bind (local ip \"*:*\"))\n");
+             policy.push_str("(allow network-inbound (local ip \"localhost:*\"))\n");
++            policy.push_str("(allow network-outbound (local ip \"localhost:*\"))\n");
+             policy.push_str("(allow network-outbound (remote ip \"localhost:*\"))\n");
+         }
+         if proxy.allow_local_binding && !proxy.ports.is_empty() {
+diff --git a/codex-rs/sandboxing/src/seatbelt_tests.rs b/codex-rs/sandboxing/src/seatbelt_tests.rs
+index 88bead32a8..42ca1dfd84 100644
+--- a/codex-rs/sandboxing/src/seatbelt_tests.rs
++++ b/codex-rs/sandboxing/src/seatbelt_tests.rs
+@@ -39,7 +39,15 @@ use pretty_assertions::assert_eq;
+ use std::ffi::CStr;
+ use std::ffi::OsStr;
+ use std::fs;
++#[cfg(target_os = "macos")]
++use std::io::Read;
+ use std::mem::MaybeUninit;
++#[cfg(target_os = "macos")]
++use std::net::TcpListener;
++#[cfg(target_os = "macos")]
++use std::net::TcpStream;
++#[cfg(target_os = "macos")]
++use std::os::fd::AsRawFd;
+ use std::os::unix::ffi::OsStrExt;
+ #[cfg(target_os = "macos")]
+ use std::os::unix::net::UnixListener;
+@@ -463,6 +471,10 @@ fn create_seatbelt_args_routes_network_through_proxy_ports() {
+         !policy.contains("(allow network-inbound (local ip \"localhost:*\"))"),
+         "policy should not allow loopback inbound unless explicitly enabled:\n{policy}"
+     );
++    assert!(
++        !policy.contains("(allow network-outbound (local ip \"localhost:*\"))"),
++        "policy should not allow local-endpoint loopback traffic unless explicitly enabled:\n{policy}"
++    );
+     assert!(
+         !policy.contains("(allow network-outbound (remote ip \"*:53\"))"),
+         "policy should not allow raw DNS unless local binding is explicitly enabled:\n{policy}"
+@@ -1218,6 +1230,10 @@ fn create_seatbelt_args_allows_local_binding_when_explicitly_enabled() {
+         policy.contains("(allow network-inbound (local ip \"localhost:*\"))"),
+         "policy should allow loopback inbound when explicitly enabled:\n{policy}"
+     );
++    assert!(
++        policy.contains("(allow network-outbound (local ip \"localhost:*\"))"),
++        "policy should allow local-endpoint loopback traffic when explicitly enabled:\n{policy}"
++    );
+     assert!(
+         policy.contains("(allow network-outbound (remote ip \"localhost:*\"))"),
+         "policy should allow loopback outbound when explicitly enabled:\n{policy}"
+@@ -1232,6 +1248,112 @@ fn create_seatbelt_args_allows_local_binding_when_explicitly_enabled() {
+     );
+ }
+ 
++#[cfg(target_os = "macos")]
++#[test]
++fn seatbelt_allows_sendfile_over_loopback_when_local_binding_is_enabled() {
++    const HELPER_ENV: &str = "CODEX_SEATBELT_SENDFILE_HELPER";
++    const SOURCE_ENV: &str = "CODEX_SEATBELT_SENDFILE_SOURCE";
++    const TARGET_ENV: &str = "CODEX_SEATBELT_SENDFILE_TARGET";
++    const BYTE_COUNT: usize = 8_193;
++
++    if std::env::var_os(HELPER_ENV).is_some() {
++        let source_path = std::env::var_os(SOURCE_ENV).expect("sendfile source path");
++        let target = std::env::var(TARGET_ENV).expect("sendfile target address");
++        let source = fs::File::open(source_path).expect("open sendfile source");
++        let stream = TcpStream::connect(target).expect("connect to loopback listener");
++        let mut transferred = BYTE_COUNT as libc::off_t;
++        // SAFETY: both descriptors remain open for the call, the byte-count pointer is valid,
++        // and null headers request a plain file-to-socket transfer.
++        let result = unsafe {
++            libc::sendfile(
++                source.as_raw_fd(),
++                stream.as_raw_fd(),
++                0,
++                &mut transferred,
++                std::ptr::null_mut(),
++                0,
++            )
++        };
++        assert_eq!(
++            result,
++            0,
++            "sendfile should be allowed for loopback traffic: {}",
++            std::io::Error::last_os_error()
++        );
++        assert_eq!(transferred, BYTE_COUNT as libc::off_t);
++        return;
++    }
++
++    let workspace = tempfile::Builder::new()
++        .prefix("codex-seatbelt-sendfile-")
++        .tempdir_in("/tmp")
++        .expect("temporary sendfile workspace");
++    let source_path = workspace.path().join("source.bin");
++    let expected = (0..BYTE_COUNT)
++        .map(|index| (index % 251) as u8)
++        .collect::<Vec<_>>();
++    fs::write(&source_path, &expected).expect("write sendfile source");
++
++    let listener = TcpListener::bind("127.0.0.1:0").expect("bind loopback listener");
++    let target = listener.local_addr().expect("loopback listener address");
++    let file_system_policy = FileSystemSandboxPolicy::from_legacy_sandbox_policy_for_cwd(
++        &SandboxPolicy::new_read_only_policy(),
++        workspace.path(),
++    );
++    let managed_network = ManagedNetworkSandboxContext {
++        loopback_ports: vec![target.port()],
++        allow_local_binding: true,
++        ..ManagedNetworkSandboxContext::default()
++    };
++    let args = create_seatbelt_command_args(CreateSeatbeltCommandArgsParams {
++        command: vec![
++            std::env::current_exe()
++                .expect("current test executable")
++                .to_string_lossy()
++                .into_owned(),
++            "seatbelt_allows_sendfile_over_loopback_when_local_binding_is_enabled".to_string(),
++            "--nocapture".to_string(),
++        ],
++        file_system_sandbox_policy: &file_system_policy,
++        network_sandbox_policy: NetworkSandboxPolicy::Restricted,
++        sandbox_policy_cwd: workspace.path(),
++        enforce_managed_network: true,
++        managed_network: Some(&managed_network),
++        environment_id: None,
++        network: None,
++        extra_allow_unix_sockets: &[],
++    })
++    .expect("build loopback sendfile Seatbelt command");
++
++    let output = Command::new(MACOS_PATH_TO_SEATBELT_EXECUTABLE)
++        .args(args)
++        .current_dir(workspace.path())
++        .env(HELPER_ENV, "1")
++        .env(SOURCE_ENV, &source_path)
++        .env(TARGET_ENV, target.to_string())
++        .output()
++        .expect("run loopback sendfile Seatbelt command");
++    let stderr = String::from_utf8_lossy(&output.stderr);
++    if !output.status.success()
++        && stderr.contains("sandbox-exec: sandbox_apply: Operation not permitted")
++    {
++        eprintln!("skipping loopback sendfile test: nested Seatbelt is unavailable");
++        return;
++    }
++    assert!(
++        output.status.success(),
++        "sendfile helper failed: stdout={} stderr={stderr}",
++        String::from_utf8_lossy(&output.stdout),
++    );
++
++    let (mut stream, _) = listener.accept().expect("accept sandboxed sender");
++    let mut received = Vec::new();
++    stream
++        .read_to_end(&mut received)
++        .expect("read sendfile payload");
++    assert_eq!(received, expected);
++}
++
+ #[test]
+ fn dynamic_network_policy_preserves_restricted_policy_when_proxy_config_without_ports() {
+     let policy = dynamic_network_policy(

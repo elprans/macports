@@ -1,10 +1,10 @@
 # codex
 
-The [Portfile](../../llm/codex/Portfile) packages Codex 0.153.4 with local macOS integration and four feature patches beyond the default MacPorts recipe.
+The [Portfile](../../llm/codex/Portfile) packages Codex 0.153.4 with local macOS integration and five feature patches beyond the default MacPorts recipe.
 
 ## Difference from MacPorts
 
-The default tree is at 0.152.1. The overlay advances Codex to 0.153.4 and adds local signing, optional sccache, conservative build resource controls, and four feature patches.
+The default tree is at 0.152.1. The overlay advances Codex to 0.153.4 and adds local signing, optional sccache, conservative build resource controls, and five feature patches.
 
 It signs `codex` and `codex-code-mode-host` with a stable local identity, hardened runtime, and dylib-loading entitlements, and installs both companion binaries together.
 
@@ -12,7 +12,9 @@ The build uses Codex-published V8 pointer-compression and sandbox assets, option
 
 ## Local features
 
-Four local patches add opt-in keyring fallback, complete provider-cost accounting, per-connection system DNS refresh, and proxy-independent Unix-socket access in restricted macOS sandboxes.
+Five local patches add opt-in keyring fallback, complete provider-cost accounting, per-connection system DNS refresh, proxy-independent Unix-socket access, and complete loopback traffic in restricted macOS sandboxes.
+
+With `allow_local_binding`, restricted macOS sessions can bind IP sockets and exchange loopback traffic, including through `sendfile`, without receiving blanket outbound Internet access.
 
 Restricted sessions retain configured Unix-socket allowlists when the managed TCP proxy is disabled. Seatbelt merges, canonicalizes, and deduplicates all socket grants without starting a proxy or granting TCP/IP access; allow-all dominates.
 
