@@ -1,9 +1,9 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 3dd25a8841..c76906465e 100644
+index dc784f533c..e0040fcaf0 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3916,6 +3916,7 @@ dependencies = [
-  "globset",
+@@ -4057,6 +4057,7 @@ dependencies = [
+  "opentelemetry",
   "pretty_assertions",
   "rama-core",
 + "rama-dns",
@@ -11,10 +11,10 @@ index 3dd25a8841..c76906465e 100644
   "rama-http-backend",
   "rama-net",
 diff --git a/codex-rs/network-proxy/Cargo.toml b/codex-rs/network-proxy/Cargo.toml
-index 82407b00d1..e557b7106c 100644
+index de72a7684e..54bbb750bb 100644
 --- a/codex-rs/network-proxy/Cargo.toml
 +++ b/codex-rs/network-proxy/Cargo.toml
-@@ -30,6 +30,7 @@ tokio = { workspace = true, features = ["full"] }
+@@ -31,6 +31,7 @@ tokio = { workspace = true, features = ["full"] }
  tracing = { workspace = true }
  url = { workspace = true }
  rama-core = { version = "=0.3.0-alpha.4" }
@@ -259,10 +259,10 @@ index 53b267595e..bba6c27c2e 100644
      async fn direct_connector_rejects_non_public_target_when_local_binding_disabled() {
          let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))
 diff --git a/codex-rs/network-proxy/src/lib.rs b/codex-rs/network-proxy/src/lib.rs
-index 060ee0cdd6..0dd2bbe37d 100644
+index b2affe0b8c..fb6e906d91 100644
 --- a/codex-rs/network-proxy/src/lib.rs
 +++ b/codex-rs/network-proxy/src/lib.rs
-@@ -21,6 +21,7 @@ mod responses;
+@@ -23,6 +23,7 @@ mod responses;
  mod runtime;
  mod socks5;
  mod state;

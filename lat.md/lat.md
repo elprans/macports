@@ -15,7 +15,7 @@ lat:
       strategy: fetch
     codex:
       repo: https://github.com/openai/codex
-      commit: fb43bddfd7d1cf78d8003052b42881ea407cd2f8
+      commit: 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
       strategy: fetch
 ---
 This graph describes why each port exists in the local overlay and how it differs from the default MacPorts tree.

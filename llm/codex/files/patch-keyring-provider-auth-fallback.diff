@@ -1,8 +1,8 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index e217b70249..8f3b71bca1 100644
+index 45fca1b150..3ed1b92177 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3867,6 +3867,7 @@ name = "codex-model-provider-info"
+@@ -3996,6 +3996,7 @@ name = "codex-model-provider-info"
  version = "0.0.0"
  dependencies = [
   "codex-api",
@@ -202,7 +202,7 @@ index d08af0ffb5..970df4beb1 100644
  fn test_validate_provider_aws_rejects_websockets() {
      let provider = ModelProviderInfo {
 diff --git a/codex-rs/protocol/src/error.rs b/codex-rs/protocol/src/error.rs
-index 1b4cf067fc..e1c9f57634 100644
+index be0192f61a..8e6d8a21b5 100644
 --- a/codex-rs/protocol/src/error.rs
 +++ b/codex-rs/protocol/src/error.rs
 @@ -187,6 +187,8 @@ pub enum CodexErrorDetails {
@@ -230,7 +230,7 @@ index 1b4cf067fc..e1c9f57634 100644
              | CodexErrorDetails::Fatal(_)
              | CodexErrorDetails::UsageNotIncluded
              | CodexErrorDetails::QuotaExceeded
-@@ -828,6 +832,40 @@ impl std::fmt::Display for EnvVarError {
+@@ -831,6 +835,40 @@ impl std::fmt::Display for EnvVarError {
      }
  }
  
