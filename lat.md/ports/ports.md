@@ -12,44 +12,27 @@ Use the configured Lat external-source mirror when one exists. Patch-bearing por
 
 ## Agent maintenance commands
 
-The trusted project layer authorizes only the commands below; a matching root-owned sudoers fragment enforces exact arguments for privileged MacPorts maintenance.
+The trusted project layer authorizes one uniform operation set for an exact port allowlist; a matching root-owned sudoers fragment enforces complete privileged argument strings.
 
-Codex loads `.codex/rules/macports-overlay.rules` for this root. `/private/etc/sudoers.d/macports-agent-maintenance` consolidates the exact privileged grants; always use `sudo -n` so agents fail instead of waiting for a password.
+Codex loads `.codex/rules/macports-overlay.rules` for this root. `/private/etc/sudoers.d/macports-agent-maintenance` consolidates the exact NOPASSWD grants; use plain `sudo` so preauthorized commands run without agent confirmation.
 
-Codex maintenance uses these exact commands:
-
-```sh
-/opt/local/bin/port lint --nitpick codex
-sudo -n /opt/local/bin/port -q checksum codex
-sudo -n /opt/local/bin/port -N clean codex
-sudo -n /opt/local/bin/port -N clean --all codex
-sudo -n /opt/local/bin/port -N extract codex
-sudo -n /opt/local/bin/port -N patch codex
-sudo -n /opt/local/bin/port -N configure codex
-sudo -n /opt/local/bin/port -N build codex
-sudo -n /opt/local/bin/port -N test codex
-sudo -n /opt/local/bin/port -N destroot codex
-sudo -n /opt/local/bin/port -N -n -s upgrade --force codex
-```
-
-QEMU maintenance retains these exact commands:
+The admitted ports are `codex`, `qemu`, `edk2-uefi`, and `FreeRDP`. Replace `<port>` below with exactly one admitted name; every admitted port has the same operations.
 
 ```sh
-sudo -n /opt/local/bin/port -N clean qemu
-sudo -n /opt/local/bin/port -N clean --all qemu
-sudo -n /opt/local/bin/port -N patch qemu
-sudo -n /opt/local/bin/port -N -n -s upgrade --force qemu
+/opt/local/bin/port lint --nitpick <port>
+sudo /opt/local/bin/port -q checksum <port>
+sudo /opt/local/bin/port -N clean <port>
+sudo /opt/local/bin/port -N clean --all <port>
+sudo /opt/local/bin/port -N extract <port>
+sudo /opt/local/bin/port -N patch <port>
+sudo /opt/local/bin/port -N configure <port>
+sudo /opt/local/bin/port -N build <port>
+sudo /opt/local/bin/port -N test <port>
+sudo /opt/local/bin/port -N destroot <port>
+sudo /opt/local/bin/port -N -n -s upgrade --force <port>
 ```
 
-EDK2 maintenance retains these exact commands:
-
-```sh
-sudo -n /opt/local/bin/port -N clean edk2-uefi
-sudo -n /opt/local/bin/port -N clean --all edk2-uefi
-sudo -n /opt/local/bin/port -N -n -s upgrade --force edk2-uefi
-```
-
-Do not append variants, options, extra ports, shell redirections, or compound commands. Add any new command explicitly to the rules, sudoers fragment, and this section before using it.
+The sudoers fragment uses an anchored POSIX regular expression over the complete argument string. Do not append variants, options, extra ports, shell redirections, or compound commands; add operations or admitted names to the project rule, sudoers regex, and this section together.
 
 ## Upstream shadows
 
