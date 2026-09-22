@@ -1,6 +1,6 @@
 # Port inventory
 
-The overlay contains 25 ports. Thirteen shadow ports in the default MacPorts tree, while twelve add software that the default tree does not currently package.
+The overlay contains 23 ports. Eleven shadow ports in the default MacPorts tree, while twelve add software that the default tree does not currently package.
 
 ## Patch maintenance
 
@@ -55,7 +55,6 @@ Do not append variants, options, extra ports, shell redirections, or compound co
 
 These ports take precedence over an existing MacPorts port and must be reviewed against the default tree before their local copy is updated or removed.
 
-- [[pango]] — Older Pango line with explicit GLib GIR and legacy-Darwin support
 - [[libvirt]] — Newer libvirt plus protected configuration and launchd services
 - [[qemu]] — QEMU patch carrier for Apple HVF and Arm interrupt behavior
 - [[py-libvirt]] — Binding version kept in lockstep with local libvirt
