@@ -18,6 +18,10 @@ Codex loads `.codex/rules/macports-overlay.rules` for this root. `/private/etc/s
 
 The admitted ports are `codex`, `qemu`, `edk2-uefi`, and `FreeRDP`. Replace `<port>` below with exactly one admitted name; every admitted port has the same operations.
 
+This list is exhaustive, not illustrative. Agents must use only these exact command forms and must not attempt or request approval for alternatives such as `port install`; the forced source-only upgrade is the sole authorized rebuild or reinstall path.
+
+Forced upgrade cannot perform a first installation. If an admitted port is absent, agents must stop after validation and report that initial installation requires a separately authorized command.
+
 ```sh
 /opt/local/bin/port lint --nitpick <port>
 sudo /opt/local/bin/port -q checksum <port>
@@ -32,7 +36,7 @@ sudo /opt/local/bin/port -N destroot <port>
 sudo /opt/local/bin/port -N -n -s upgrade --force <port>
 ```
 
-The sudoers fragment uses an anchored POSIX regular expression over the complete argument string. Do not append variants, options, extra ports, shell redirections, or compound commands; add operations or admitted names to the project rule, sudoers regex, and this section together.
+The sudoers fragment uses an anchored POSIX regular expression over the complete argument string. Do not add `sudo -n`, variants, options, extra ports, shell redirections, or compound commands; add operations or admitted names to the project rule, sudoers regex, and this section together before using them.
 
 ## Upstream shadows
 
