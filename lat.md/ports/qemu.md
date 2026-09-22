@@ -4,7 +4,13 @@ The [Portfile](../../emulators/qemu/Portfile) is a QEMU 11.1.1 patch carrier foc
 
 ## Difference from MacPorts
 
-The overlay matches the default tree at 11.1.1 revision 0, including its macOS compatibility patches, and adds eight local HVF patches maintained as commits on `macports/qemu-11.1.1` in the QEMU checkout.
+The overlay starts from the default tree's 11.1.1 recipe and macOS compatibility patches, adds eight local HVF patches maintained on `macports/qemu-11.1.1`, and carries revision 1 for its default graphics policy.
+
+## Paravirtualized graphics
+
+Apple's ParavirtualizedGraphics devices are opt-in because the macOS 27 SDK removes the legacy task-memory API used by QEMU 11.1.1.
+
+Default builds pass `--disable-pvg`, while the `+pvg` variant replaces it with `--enable-pvg`. This setting is independent of the Cocoa UI, HVF acceleration, ramfb, and VNC.
 
 ## Local HVF patch set
 

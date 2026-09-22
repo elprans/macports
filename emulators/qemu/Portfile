@@ -9,7 +9,7 @@ legacysupport.newest_darwin_requires_legacy 16
 
 name                    qemu
 version                 11.1.1
-revision                0
+revision                1
 categories              emulators
 license                 GPL-2+
 maintainers             {raimue @raimue} \
@@ -172,6 +172,7 @@ configure.args-append   --python=${prefix}/bin/python${py_branch}
 
 # Select features
 configure.args-append   --disable-cocoa \
+                        --disable-pvg \
                         --disable-curses \
                         --disable-capstone \
                         --disable-sdl \
@@ -282,6 +283,10 @@ if {${os.platform} eq "darwin" && ${os.major} >= 18} {
 
 variant cocoa description {Use the native Mac OS X graphical user interface} {
     configure.args-replace  --disable-cocoa --enable-cocoa
+}
+
+variant pvg description {Enable macOS ParavirtualizedGraphics devices using the legacy API} {
+    configure.args-replace  --disable-pvg --enable-pvg
 }
 
 variant curses description {Use the curses text-only user interface} {
