@@ -1,0 +1,315 @@
+diff --git client/SDL/SDL3/sdl_monitor.cpp client/SDL/SDL3/sdl_monitor.cpp
+index 0fc974835b9046906c123f0c80a7413240ac4612..5afd36335ba0dfb00f31d8e907751be49328695f 100644
+--- client/SDL/SDL3/sdl_monitor.cpp
++++ client/SDL/SDL3/sdl_monitor.cpp
+@@ -115,6 +115,27 @@ int sdl_list_monitors([[maybe_unused]] SdlContext* sdl)
+ 	return TRUE;
+ }
+ 
++[[nodiscard]] static BOOL sdl_get_usable_bounds_in_pixels(SDL_DisplayID id, SDL_Rect* rect)
++{
++	WINPR_ASSERT(rect);
++
++	if (!SDL_GetDisplayUsableBounds(id, rect))
++		return FALSE;
++
++	const auto mode = SDL_GetDesktopDisplayMode(id);
++	if (!mode)
++		return FALSE;
++
++	float density = mode->pixel_density;
++	if (density <= 0.0f)
++		density = 1.0f;
++	const auto fw = static_cast<float>(rect->w);
++	const auto fh = static_cast<float>(rect->h);
++	rect->w = static_cast<int>(std::ceil(fw * density));
++	rect->h = static_cast<int>(std::ceil(fh * density));
++	return TRUE;
++}
++
+ [[nodiscard]] static BOOL sdl_apply_max_size(SdlContext* sdl, UINT32* pMaxWidth, UINT32* pMaxHeight)
+ {
+ 	WINPR_ASSERT(sdl);
+@@ -140,14 +161,16 @@ int sdl_list_monitors([[maybe_unused]] SdlContext* sdl)
+ 		else if (freerdp_settings_get_bool(settings, FreeRDP_Workarea))
+ 		{
+ 			SDL_Rect rect = {};
+-			SDL_GetDisplayUsableBounds(monitor->orig_screen, &rect);
++			if (!sdl_get_usable_bounds_in_pixels(monitor->orig_screen, &rect))
++				return FALSE;
+ 			*pMaxWidth = WINPR_ASSERTING_INT_CAST(uint32_t, rect.w);
+ 			*pMaxHeight = WINPR_ASSERTING_INT_CAST(uint32_t, rect.h);
+ 		}
+ 		else if (freerdp_settings_get_uint32(settings, FreeRDP_PercentScreen) > 0)
+ 		{
+ 			SDL_Rect rect = {};
+-			SDL_GetDisplayUsableBounds(monitor->orig_screen, &rect);
++			if (!sdl_get_usable_bounds_in_pixels(monitor->orig_screen, &rect))
++				return FALSE;
+ 
+ 			*pMaxWidth = WINPR_ASSERTING_INT_CAST(uint32_t, rect.w);
+ 			*pMaxHeight = WINPR_ASSERTING_INT_CAST(uint32_t, rect.h);
+@@ -183,20 +206,20 @@ int sdl_list_monitors([[maybe_unused]] SdlContext* sdl)
+ 	if (!freerdp_settings_get_bool(settings, FreeRDP_Fullscreen) &&
+ 	    !freerdp_settings_get_bool(settings, FreeRDP_UseMultimon))
+ 	{
+-		if (freerdp_settings_get_bool(settings, FreeRDP_Workarea))
+-		{
+-			if (sdl->monitorIds().empty())
+-				return FALSE;
+-			const auto id = sdl->monitorIds().front();
+-			auto monitor = sdl->getDisplay(id);
+-			monitor.is_primary = true;
+-			monitor.x = 0;
+-			monitor.y = 0;
+-			monitors.emplace_back(monitor);
+-			return freerdp_settings_set_monitor_def_array_sorted(settings, monitors.data(),
+-			                                                     monitors.size());
+-		}
+-		return TRUE;
++		const auto workarea = freerdp_settings_get_bool(settings, FreeRDP_Workarea);
++		const auto percent = freerdp_settings_get_uint32(settings, FreeRDP_PercentScreen);
++		if (!workarea && (percent == 0))
++			return TRUE;
++		if (sdl->monitorIds().empty())
++			return FALSE;
++		const auto id = sdl->monitorIds().front();
++		auto monitor = sdl->getDisplay(id);
++		monitor.is_primary = true;
++		monitor.x = 0;
++		monitor.y = 0;
++		monitors.emplace_back(monitor);
++		return freerdp_settings_set_monitor_def_array_sorted(settings, monitors.data(),
++		                                                     monitors.size());
+ 	}
+ 	for (const auto& id : sdl->monitorIds())
+ 	{
+diff --git client/SDL/SDL3/sdl_window.cpp client/SDL/SDL3/sdl_window.cpp
+index 9aebf895ff36c614dec94b74e1716b3cc0479f34..5978f16eb3004a0836a9dd3d7a06f98167e9ca8a 100644
+--- client/SDL/SDL3/sdl_window.cpp
++++ client/SDL/SDL3/sdl_window.cpp
+@@ -18,7 +18,6 @@
+  * limitations under the License.
+  */
+ #include <limits>
+-#include <sstream>
+ #include <cmath>
+ 
+ #include "sdl_window.hpp"
+@@ -26,6 +25,58 @@
+ 
+ #include <freerdp/utils/string.h>
+ 
++static rdpMonitor makeMonitor(SDL_DisplayID id, const SDL_Rect& rect, float factor,
++                              bool forceAsPrimary)
++{
++	auto r = rect;
++	if (forceAsPrimary)
++	{
++		r.x = 0;
++		r.y = 0;
++	}
++
++	const float dpi = std::roundf(factor * 100.0f);
++
++	WINPR_ASSERT(r.w > 0);
++	WINPR_ASSERT(r.h > 0);
++
++	const auto primary = SDL_GetPrimaryDisplay();
++	const auto orientation = SDL_GetCurrentDisplayOrientation(id);
++	const auto rdp_orientation = sdl::utils::orientaion_to_rdp(orientation);
++
++	rdpMonitor monitor{};
++	monitor.orig_screen = id;
++	monitor.x = r.x;
++	monitor.y = r.y;
++	monitor.width = r.w;
++	monitor.height = r.h;
++	monitor.is_primary = forceAsPrimary || (id == primary);
++	monitor.attributes.desktopScaleFactor = static_cast<UINT32>(dpi);
++	monitor.attributes.deviceScaleFactor = 100;
++	monitor.attributes.orientation = rdp_orientation;
++	monitor.attributes.physicalWidth = WINPR_ASSERTING_INT_CAST(uint32_t, r.w);
++	monitor.attributes.physicalHeight = WINPR_ASSERTING_INT_CAST(uint32_t, r.h);
++
++	const auto cat = SDL_LOG_CATEGORY_APPLICATION;
++	SDL_LogDebug(cat, "monitor.orig_screen                   %" PRIu32, monitor.orig_screen);
++	SDL_LogDebug(cat, "monitor.x                             %" PRId32, monitor.x);
++	SDL_LogDebug(cat, "monitor.y                             %" PRId32, monitor.y);
++	SDL_LogDebug(cat, "monitor.width                         %" PRId32, monitor.width);
++	SDL_LogDebug(cat, "monitor.height                        %" PRId32, monitor.height);
++	SDL_LogDebug(cat, "monitor.is_primary                    %" PRIu32, monitor.is_primary);
++	SDL_LogDebug(cat, "monitor.attributes.desktopScaleFactor %" PRIu32,
++	             monitor.attributes.desktopScaleFactor);
++	SDL_LogDebug(cat, "monitor.attributes.deviceScaleFactor  %" PRIu32,
++	             monitor.attributes.deviceScaleFactor);
++	SDL_LogDebug(cat, "monitor.attributes.orientation        %s",
++	             freerdp_desktop_rotation_flags_to_string(monitor.attributes.orientation));
++	SDL_LogDebug(cat, "monitor.attributes.physicalWidth      %" PRIu32,
++	             monitor.attributes.physicalWidth);
++	SDL_LogDebug(cat, "monitor.attributes.physicalHeight     %" PRIu32,
++	             monitor.attributes.physicalHeight);
++	return monitor;
++}
++
+ SdlWindow::SdlWindow(SDL_DisplayID id, const std::string& title, const SDL_Rect& rect,
+                      [[maybe_unused]] Uint32 flags)
+     : _initialW(rect.w), _initialH(rect.h), _displayID(id)
+@@ -382,46 +433,7 @@ rdpMonitor SdlWindow::query(SDL_Window* window, SDL_DisplayID id, bool forceAsPr
+ 
+ 	const auto& r = rect(window, forceAsPrimary);
+ 	const float factor = SDL_GetWindowDisplayScale(window);
+-	const float dpi = std::roundf(factor * 100.0f);
+-
+-	WINPR_ASSERT(r.w > 0);
+-	WINPR_ASSERT(r.h > 0);
+-
+-	const auto primary = SDL_GetPrimaryDisplay();
+-	const auto orientation = SDL_GetCurrentDisplayOrientation(id);
+-	const auto rdp_orientation = sdl::utils::orientaion_to_rdp(orientation);
+-
+-	rdpMonitor monitor{};
+-	monitor.orig_screen = id;
+-	monitor.x = r.x;
+-	monitor.y = r.y;
+-	monitor.width = r.w;
+-	monitor.height = r.h;
+-	monitor.is_primary = forceAsPrimary || (id == primary);
+-	monitor.attributes.desktopScaleFactor = static_cast<UINT32>(dpi);
+-	monitor.attributes.deviceScaleFactor = 100;
+-	monitor.attributes.orientation = rdp_orientation;
+-	monitor.attributes.physicalWidth = WINPR_ASSERTING_INT_CAST(uint32_t, r.w);
+-	monitor.attributes.physicalHeight = WINPR_ASSERTING_INT_CAST(uint32_t, r.h);
+-
+-	const auto cat = SDL_LOG_CATEGORY_APPLICATION;
+-	SDL_LogDebug(cat, "monitor.orig_screen                   %" PRIu32, monitor.orig_screen);
+-	SDL_LogDebug(cat, "monitor.x                             %" PRId32, monitor.x);
+-	SDL_LogDebug(cat, "monitor.y                             %" PRId32, monitor.y);
+-	SDL_LogDebug(cat, "monitor.width                         %" PRId32, monitor.width);
+-	SDL_LogDebug(cat, "monitor.height                        %" PRId32, monitor.height);
+-	SDL_LogDebug(cat, "monitor.is_primary                    %" PRIu32, monitor.is_primary);
+-	SDL_LogDebug(cat, "monitor.attributes.desktopScaleFactor %" PRIu32,
+-	             monitor.attributes.desktopScaleFactor);
+-	SDL_LogDebug(cat, "monitor.attributes.deviceScaleFactor  %" PRIu32,
+-	             monitor.attributes.deviceScaleFactor);
+-	SDL_LogDebug(cat, "monitor.attributes.orientation        %s",
+-	             freerdp_desktop_rotation_flags_to_string(monitor.attributes.orientation));
+-	SDL_LogDebug(cat, "monitor.attributes.physicalWidth      %" PRIu32,
+-	             monitor.attributes.physicalWidth);
+-	SDL_LogDebug(cat, "monitor.attributes.physicalHeight     %" PRIu32,
+-	             monitor.attributes.physicalHeight);
+-	return monitor;
++	return makeMonitor(id, r, factor, forceAsPrimary);
+ }
+ 
+ SDL_Rect SdlWindow::rect(SDL_Window* window, bool forceAsPrimary)
+@@ -590,79 +602,30 @@ SdlWindow SdlWindow::create(SDL_DisplayID id, const std::string& title, Uint32 f
+ 	return window;
+ }
+ 
+-static SDL_Window* createDummy(SDL_DisplayID id)
+-{
+-	const auto x = SDL_WINDOWPOS_CENTERED_DISPLAY(id);
+-	const auto y = SDL_WINDOWPOS_CENTERED_DISPLAY(id);
+-	const int w = 64;
+-	const int h = 64;
+-
+-	auto props = SDL_CreateProperties();
+-	std::stringstream ss;
+-	ss << "SdlWindow::query(" << id << ")";
+-	SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, ss.str().c_str());
+-	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_X_NUMBER, x);
+-	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, y);
+-	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, w);
+-	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, h);
+-
+-	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true);
+-	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, false);
+-	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_BORDERLESS_BOOLEAN, true);
+-	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_HIDDEN_BOOLEAN, false);
+-
+-	auto window = SDL_CreateWindowWithProperties(props);
+-	SDL_DestroyProperties(props);
+-
+-	/* Workaround: we need to properly position the window on the correct monitor
+-	 * before going fullscreen. Otherwise we will get the primary monitor details.
+-	 */
+-	if (window)
+-	{
+-		SDL_Rect rect = {};
+-		std::ignore = SDL_GetDisplayBounds(id, &rect);
+-		std::ignore = SDL_SetWindowPosition(window, rect.x, rect.y);
+-		std::ignore = SDL_SetWindowFullscreen(window, true);
+-	}
+-	return window;
+-}
+-
+ rdpMonitor SdlWindow::query(SDL_DisplayID id, bool forceAsPrimary)
+ {
+-	std::unique_ptr<SDL_Window, void (*)(SDL_Window*)> window(createDummy(id), SDL_DestroyWindow);
+-	if (!window)
+-		return {};
+-
+-	std::unique_ptr<SDL_Renderer, void (*)(SDL_Renderer*)> renderer(
+-	    SDL_CreateRenderer(window.get(), nullptr), SDL_DestroyRenderer);
+-
+-	if (!SDL_SyncWindow(window.get()))
+-		return {};
+-
+-	SDL_Event event{};
+-	while (SDL_PollEvent(&event))
+-		;
+-
+-	return query(window.get(), id, forceAsPrimary);
+-}
+-
+-SDL_Rect SdlWindow::rect(SDL_DisplayID id, bool forceAsPrimary)
+-{
+-	std::unique_ptr<SDL_Window, void (*)(SDL_Window*)> window(createDummy(id), SDL_DestroyWindow);
+-	if (!window)
++	SDL_Rect rect{};
++	if (!SDL_GetDisplayBounds(id, &rect))
+ 		return {};
+ 
+-	std::unique_ptr<SDL_Renderer, void (*)(SDL_Renderer*)> renderer(
+-	    SDL_CreateRenderer(window.get(), nullptr), SDL_DestroyRenderer);
+-
+-	if (!SDL_SyncWindow(window.get()))
++	/* Desktop mode dimensions and pixel density provide the same physical pixel size
++	 * as a fullscreen high-DPI window without changing compositor or focus state. */
++	const auto mode = SDL_GetDesktopDisplayMode(id);
++	if (!mode)
+ 		return {};
+ 
+-	SDL_Event event{};
+-	while (SDL_PollEvent(&event))
+-		;
+-
+-	return rect(window.get(), forceAsPrimary);
++	float density = mode->pixel_density;
++	if (density <= 0.0f)
++		density = 1.0f;
++	const auto fw = static_cast<float>(mode->w);
++	const auto fh = static_cast<float>(mode->h);
++	rect.w = static_cast<int>(std::ceil(fw * density));
++	rect.h = static_cast<int>(std::ceil(fh * density));
++
++	float contentScale = SDL_GetDisplayContentScale(id);
++	if (contentScale <= 0.0f)
++		contentScale = 1.0f;
++	return makeMonitor(id, rect, density * contentScale, forceAsPrimary);
+ }
+ 
+ bool SdlWindow::tryFallback(bool isFullscreen)
+diff --git client/SDL/SDL3/sdl_window.hpp client/SDL/SDL3/sdl_window.hpp
+index 4ff469c0b48ad888de6a101754a85c6043a6ac15..ad673a9bfb49848f8992641f4363584037f57d34 100644
+--- client/SDL/SDL3/sdl_window.hpp
++++ client/SDL/SDL3/sdl_window.hpp
+@@ -91,7 +91,6 @@ class SdlWindow
+ 	[[nodiscard]] static rdpMonitor query(SDL_Window* window, SDL_DisplayID id,
+ 	                                      bool forceAsPrimary = false);
+ 	[[nodiscard]] static SDL_Rect rect(SDL_Window* window, bool forceAsPrimary = false);
+-	[[nodiscard]] static SDL_Rect rect(SDL_DisplayID id, bool forceAsPrimary = false);
+ 
+ 	[[nodiscard]] static bool tryFallback(bool isFullscreen);
+ 

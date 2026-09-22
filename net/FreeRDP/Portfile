@@ -6,6 +6,7 @@ PortGroup           cmake   1.1
 
 epoch               3
 github.setup        FreeRDP FreeRDP 3.31.1
+revision            1
 github.tarball_from releases
 categories          net
 license             Apache
@@ -48,8 +49,10 @@ if {${os.platform} eq "darwin" && ${os.major} < 14} {
         -DCHANNEL_RDPSND=OFF
 }
 
-# Disable check on cmake build type so we can control compiler flags
-patchfiles-append patch-cmake_ignore_build_type.diff
+# Disable check on cmake build type so we can control compiler flags, and fix
+# SDL3 display geometry without visible fullscreen monitor probes.
+patchfiles-append   patch-cmake_ignore_build_type.diff \
+                    patch-client-SDL3-fix-display-geometry-queries.diff
 
 post-patch {
     if {[string match "*gcc*" ${configure.compiler}]} {

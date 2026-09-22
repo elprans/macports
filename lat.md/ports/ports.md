@@ -61,7 +61,7 @@ These ports take precedence over an existing MacPorts port and must be reviewed 
 - [[gstreamer1-gst-plugins-base]] — Older GStreamer base with Cocoa GL header conflict handling
 - [[py-virtualfish]] — Older project lineage and Python compatibility set
 - [[gobject-introspection]] — Stale revision of the same 1.86.0 release
-- [[freerdp]] — Straightforward newer FreeRDP release
+- [[freerdp]] — Newer FreeRDP with local SDL3 display-geometry fixes
 - [[glib2]] — Older GLib point release lacking later MacPorts maintenance
 - [[codex]] — Newer Codex with signing, V8 assets, and local feature patches
 - [[opencode]] — Straightforward older OpenCode pin

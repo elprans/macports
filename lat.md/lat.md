@@ -17,6 +17,10 @@ lat:
       repo: https://github.com/openai/codex
       commit: 6b9826e3aa83b1a5947db50f4332cb9c65f1b340
       strategy: fetch
+    freerdp:
+      repo: https://github.com/FreeRDP/FreeRDP
+      commit: 9ffb78fc6db8bd540ef85434d2b1b41656a2b4a7
+      strategy: fetch
 ---
 This graph describes why each port exists in the local overlay and how it differs from the default MacPorts tree.
 
