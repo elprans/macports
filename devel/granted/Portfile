@@ -2,13 +2,14 @@
 
 PortSystem          1.0
 
-version             0.36.3
+version             0.39.0
 revision            0
 
 PortGroup           golang 1.0
 
-go.setup            github.com/common-fate/granted ${version} v
-go.package          github.com/common-fate/granted
+go.setup            github.com/fwdcloudsec/granted ${version} v
+go.package          github.com/fwdcloudsec/granted
+go.toolchain_min    1.25.7
 
 name                granted
 
@@ -43,16 +44,16 @@ build.pre_args-append \
                          -X ${cfgmod}.Version=${version} \
                          -X ${cfgmod}.Date=${build_date} \
                          -X ${cfgmod}.BuiltBy=macports' \
-		    -o bin/granted
+                    -o bin/granted
 
 build.args          cmd/${name}/main.go
 
 use_parallel_build  no
 
 checksums           ${distname}${extract.suffix} \
-                        rmd160  e0201b3174a8f44483e6915435066757d5bf4987 \
-                        sha256  9f20bf0489aafd1d5790c697e6e8d8f1e0a8432d5e4a388c775f63c0776511ac \
-                        size    878479
+                        rmd160  f6affdb1ec7606c20f02a6231c53df2b6a831f5f \
+                        sha256  6f9a4b38ffac2da32d7f6c5d225aca2f799d1f74aadd3783a873ff5d98b94144 \
+                        size    850475
 
 github.tarball_from archive
 
