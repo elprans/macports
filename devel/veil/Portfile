@@ -1,0 +1,52 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           golang 1.0
+
+go.setup            github.com/vercel/veil 0.0.7 v
+go.offline_build    no
+go.toolchain_min    1.26.1
+revision            0
+
+description         Transform and render deployment configuration
+
+long_description    ${name} is a configuration management CLI that tracks, \
+                    transforms, and renders Kubernetes, Envoy, Terraform, \
+                    and other deployment configuration through TypeScript \
+                    hooks.
+
+categories          devel
+installs_libs       no
+# Upstream does not publish a license for this source.
+license             none
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+supported_archs     arm64 x86_64
+
+checksums           ${distname}${extract.suffix} \
+                    rmd160  f0a8c2be131c37f41c5ace0d622ebf79d76fcf6c \
+                    sha256  ffb0b85756b39e6763e05a5c9e61b1c375532d7b1db101f1517a90ae67e90c0c \
+                    size    217810
+
+build.pre_args-append \
+                    -trimpath \
+                    -ldflags '-s -w -X main.version=v${version}' \
+                    -o ${worksrcpath}/${name}
+build.args          ./cmd/${name}
+
+test.run            yes
+test.target         ./...
+
+destroot {
+    xinstall -m 0755 ${worksrcpath}/${name} \
+        ${destroot}${prefix}/bin/
+
+    set docdir ${prefix}/share/doc/${name}
+    xinstall -d ${destroot}${docdir}
+    xinstall -m 0644 -W ${worksrcpath} README.md SPEC.md \
+        ${destroot}${docdir}
+    xinstall -m 0644 ${worksrcpath}/docs/veil.md \
+        ${destroot}${docdir}/veil.md
+}
+
+github.livecheck.regex {([0-9.]+)}

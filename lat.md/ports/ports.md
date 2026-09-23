@@ -1,6 +1,6 @@
 # Port inventory
 
-The overlay contains 24 ports. Twelve shadow ports in the default MacPorts tree, while twelve add software that the default tree does not currently package.
+The overlay contains 25 ports. Twelve shadow ports in the default MacPorts tree, while thirteen add software that the default tree does not currently package.
 
 ## Patch maintenance
 
@@ -71,3 +71,4 @@ These ports have no matching port in the default tree, so their pages describe b
 - [[pinentry-touchid]] — Touch ID-aware GPG pinentry helper
 - [[granted]] — Go-built cloud role and account launcher
 - [[libtpms]] — TPM emulation library used by swtpm
+- [[veil]] — Go-built deployment configuration transformer
