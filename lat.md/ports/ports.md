@@ -1,6 +1,6 @@
 # Port inventory
 
-The overlay contains 23 ports. Eleven shadow ports in the default MacPorts tree, while twelve add software that the default tree does not currently package.
+The overlay contains 24 ports. Twelve shadow ports in the default MacPorts tree, while twelve add software that the default tree does not currently package.
 
 ## Patch maintenance
 
@@ -53,6 +53,7 @@ These ports take precedence over an existing MacPorts port and must be reviewed 
 - [[codex]] — Newer Codex with signing, V8 assets, and local feature patches
 - [[opencode]] — Straightforward older OpenCode pin
 - [[sccache]] — Newer sccache release with regenerated offline Cargo sources
+- [[cdrtools]] — Default cdrtools recipe with a Darwin 27 shell workaround
 
 ## Overlay-only ports
 
