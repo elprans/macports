@@ -73,8 +73,8 @@ cargo.crates \
     autocfg                          1.5.0  c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8 \
     aws-config                      1.8.12  96571e6996817bf3d58f6b569e4b9fd2e9d2fcf9f7424eed07b2ce9bb87535e5 \
     aws-credential-types            1.2.11  3cd362783681b15d136480ad555a099e82ecd8e2d10a841e14dfd0078d67fee3 \
-    aws-lc-rs                       1.16.2  a054912289d18629dc78375ba2c3726a3afe3ff71b4edba9dedfca0e3446d1fc \
-    aws-lc-sys                      0.39.0  1fa7e52a4c5c547c741610a2c6f123f3881e409b714cd27e6798ef020c514f0a \
+    aws-lc-rs                       1.18.1  b281d307588d634de920874890732659e2e7672f72b5e10e81badc1a8a83621e \
+    aws-lc-sys                      0.45.0  9bff6c3b54fad79a2e60b8102caf565819711497c1f5f092f49508e2f5c31b27 \
     aws-runtime                     1.5.17  d81b5b2898f6798ad58f484856768bca817e3cd9de0974c24ae0f1113fe88f1b \
     aws-sdk-signin                   1.2.0  c084bd63941916e1348cb8d9e05ac2e49bdd40a380e9167702683184c6c6be53 \
     aws-sdk-sso                     1.91.0  8ee6402a36f27b52fe67661c6732d684b2635152b676aa2babbfb5204f99115d \
@@ -141,6 +141,7 @@ cargo.crates \
     cached_proc_macro               0.25.0  9225bdcf4e4a9a4c08bf16607908eb2fbf746828d5e0b5e019726dbf6571f201 \
     cached_proc_macro_types          0.1.1  ade8366b8bd5ba243f0a58f036cc0ca8a2f069cff1a2351ef1cac6b083e16fc0 \
     calendrical_calculations         0.2.4  5abbd6eeda6885048d357edc66748eea6e0268e3dd11f326fff5bd248d779c26 \
+    caseless                         0.2.2  8b6fd507454086c8edfd769ca6ada439193cdb209c7681712ef6275cccbfe5d8 \
     castaway                         0.2.4  dec551ab6e7578819132c713a93c022a05d60159dc86e7a7050223577484c55a \
     cbc                              0.1.2  26b52a9543ae338f279b96b0b9fed9c8093744685043739079ce85cd58f289a6 \
     cc                              1.2.55  47b26a0954ae34af09b50f0de26458fa95369a0d478d8236d3f93082b219bd29 \
@@ -670,6 +671,7 @@ cargo.crates \
     objc2-encode                     4.1.0  ef25abbcd74fb2609453eb695bd2f860d389e457f67dc17cafc8b8cbc89d0c33 \
     objc2-foundation                 0.3.2  e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272 \
     objc2-io-surface                 0.3.2  180788110936d59bab6bd83b6060ffdfffb3b922ba1396b312ae795e1de9d81d \
+    objc2-local-authentication       0.3.2  e48e0b8b339e0d9d2ed4416b7f93f9d4daadff7d4dd797f89867cde11aeac607 \
     objc2-quartz-core                0.3.2  96c1358452b371bf9f104e21ec536d37a650eb10f7ee379fff67d2e08d537f1f \
     objc2-ui-kit                     0.3.2  d87d638e33c06f577498cbcc50491496a3ed4246998a7fbba7ccb98b1e7eab22 \
     objc2-user-notifications         0.3.2  9df9128cbbfef73cda168416ccf7f837b62737d748333bfe9ab71c245d76613e \
@@ -788,7 +790,7 @@ cargo.crates \
     quick-xml                       0.41.0  e660451e55124f798a69a5af3f49ccfbefbd41910eefd25caf2393e1f3473ec1 \
     quickcheck                       1.1.0  95c589f335db0f6aaa168a7cd27b1fc6920f5e1470c804f814d9cd6e62a0f70b \
     quinn                           0.11.9  b9e20a958963c291dc322d98411f541009df2ced7b5a4f2bd52337638cfccf20 \
-    quinn-proto                    0.11.14  434b42fec591c96ef50e21e886936e66d3cc3f737104fdb9b737c40ffb94c098 \
+    quinn-proto                    0.11.15  4fcb935c5bec503c2f0e306bdd3e58bb9029dcb14fa8d9ac76e3a5256ac0763e \
     quinn-udp                       0.5.14  addec6a0dcad8a8d96a771f815f0eaf55f9d1805756410b39f5fa81332574cbd \
     quinn-udp                        0.6.1  76150b617afc75e6e21ac5f39bc196e80b65415ae48d62dbef8e2519d040ce42 \
     quote                           1.0.45  41f2619966050689382d2b44f664f4bc593e129785a36d6ee376ddf37259b924 \
@@ -821,6 +823,7 @@ cargo.crates \
     rand_core                        0.6.4  ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c \
     rand_core                        0.9.5  76afc826de14238e6e8c374ddcc1fa19e374fd8dd986b0d2af0d02377261d83c \
     rand_core                       0.10.1  63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69 \
+    rand_regex                      0.18.1  04db2e382d13679a1e42400e90e306cdbb79dc5cd41bb035ba4eae72e78cdf37 \
     rand_xorshift                    0.4.0  513962919efc330f829edb2535844d1b912b0fbe2ca165d613e4e8788bb05a5a \
     ratatui                         0.30.2  3274ba0a2c5e1bcad2a2005d20f4dc59dad26b2eb0940fb094500dba4099d57d \
     ratatui-core                     0.1.2  cbb175c433c8e28a809d1f5773a2ae96e68c0ce40db865cbab1020bf33ae479c \
@@ -882,10 +885,12 @@ cargo.crates \
     rusticata-macros                 4.1.0  faf0c4a6ece9950b9abdb62b1cfcf2a68b3b67a10ba445b3bb85be2a293d0632 \
     rustix                         0.38.44  fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154 \
     rustix                           1.1.4  b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190 \
-    rustls                         0.23.36  c665f33d38cea657d9614f766881e4d510e0eda4239891eea56b4cadcf01801b \
+    rustls                         0.23.45  0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634 \
     rustls-native-certs              0.8.3  612460d5f7bea540c490b2b6395d8e34a953e52b491accd6c86c8164c5932a63 \
     rustls-pki-types                1.14.0  be040f8b0a225e40375822a563fa9524378b9d63112f53e19ffff34df5d33fdd \
-    rustls-webpki                 0.103.13  61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e \
+    rustls-platform-verifier         0.7.0  26d1e2536ce4f35f4846aa13bff16bd0ff40157cdb14cc056c7b14ba41233ba0 \
+    rustls-platform-verifier-android     0.1.1  f87165f0995f63a9fbeea62b64d10b4d9d8e78ec6d7d51fb2125fda7bb36788f \
+    rustls-webpki                 0.103.15  f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2 \
     rustversion                     1.0.22  b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d \
     rustyline                       14.0.0  7803e8936da37efd9b6d4478277f4b2b9bb5cdb37a113e8d63222e58da647e63 \
     ryu                             1.0.22  a50f4cf475b65d88e057964e0e9bb1f0aa9bbb2036dc65c64596b42932536984 \

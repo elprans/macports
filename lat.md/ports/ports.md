@@ -8,6 +8,8 @@ Every port that carries local patch files requires a matching local source check
 
 Reroll patches from that checkout against the exact source revision packaged by the port, and validate the patched source tree before copying the refreshed patch files into the overlay. Do not maintain patches by editing the exported patch files in isolation.
 
+When updating patches, commit all related implementation and tests in the matching source checkout as part of the corresponding patch commit. Verify the exported patch matches that commit; do not leave patch behavior only in uncommitted checkout changes.
+
 Use the configured Lat external-source mirror when one exists. Patch-bearing ports may add further checkout-specific guidance, such as [[codex#Version bumps|Codex's Rust-cache workflow]].
 
 ## Agent maintenance commands

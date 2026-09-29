@@ -1,8 +1,8 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 45fca1b150..3ed1b92177 100644
+index 52bb0e3578..7a3e39f2f7 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -3996,6 +3996,7 @@ name = "codex-model-provider-info"
+@@ -4109,6 +4109,7 @@ name = "codex-model-provider-info"
  version = "0.0.0"
  dependencies = [
   "codex-api",
@@ -10,8 +10,243 @@ index 45fca1b150..3ed1b92177 100644
   "codex-protocol",
   "codex-utils-absolute-path",
   "codex-utils-redacted-string",
+diff --git a/codex-rs/cli/src/doctor.rs b/codex-rs/cli/src/doctor.rs
+index 1a47a11896..1d5897cc93 100644
+--- a/codex-rs/cli/src/doctor.rs
++++ b/codex-rs/cli/src/doctor.rs
+@@ -1228,7 +1228,9 @@ fn auth_check(config: &Config) -> DoctorCheck {
+         config.model_provider.env_key.as_deref(),
+         config.model_provider.env_key_instructions.as_deref(),
+         details.clone(),
+-        env_var_present,
++        |name| env::var(name).is_ok_and(|value| !value.trim().is_empty()),
++        config.model_provider.keyring_enabled(),
++        || config.model_provider.api_key(),
+     ) {
+         return check;
+     }
+@@ -1309,6 +1311,8 @@ fn provider_specific_auth_check(
+     provider_env_key_instructions: Option<&str>,
+     mut details: Vec<String>,
+     env_var_present: impl Fn(&str) -> bool,
++    keyring_enabled: bool,
++    provider_api_key: impl FnOnce() -> codex_protocol::error::Result<Option<String>>,
+ ) -> Option<DoctorCheck> {
+     details.push(format!(
+         "model provider requires OpenAI auth: {requires_openai_auth}"
+@@ -1332,15 +1336,66 @@ fn provider_specific_auth_check(
+         }
+         Some(env_key) => {
+             details.push(format!("provider auth env var: {env_key} (missing)"));
++            if keyring_enabled {
++                details.push(format!(
++                    "provider keyring: enabled (service: Codex Model Providers, account: {env_key})"
++                ));
++                match provider_api_key() {
++                    Ok(Some(_)) => {
++                        return Some(
++                            DoctorCheck::new(
++                                "auth.credentials",
++                                "auth",
++                                CheckStatus::Ok,
++                                "auth is provided by the active model provider keyring",
++                            )
++                            .details(details),
++                        );
++                    }
++                    Err(error)
++                        if matches!(
++                            error.details(),
++                            codex_protocol::error::CodexErrorDetails::KeyringRecord(
++                                codex_protocol::error::KeyringRecordError { cause: Some(_), .. }
++                            )
++                        ) =>
++                    {
++                        return Some(
++                            DoctorCheck::new(
++                                "auth.credentials",
++                                "auth",
++                                CheckStatus::Fail,
++                                "active model provider keyring record could not be read",
++                            )
++                            .details(details)
++                            .remediation(format!(
++                                "Check OS keyring access for service `Codex Model Providers` and account `{env_key}`, or set {env_key}."
++                            )),
++                        );
++                    }
++                    Ok(None) | Err(_) => {}
++                }
++            }
+             let remediation = provider_env_key_instructions
+                 .map(str::to_string)
+                 .unwrap_or_else(|| format!("Set {env_key} for the active model provider."));
++            let remediation = if keyring_enabled {
++                format!(
++                    "{remediation} Alternatively, add a non-empty OS keyring record for service `Codex Model Providers` and account `{env_key}`."
++                )
++            } else {
++                remediation
++            };
+             Some(
+                 DoctorCheck::new(
+                     "auth.credentials",
+                     "auth",
+                     CheckStatus::Fail,
+-                    "active model provider auth env var is missing",
++                    if keyring_enabled {
++                        "active model provider credentials are missing"
++                    } else {
++                        "active model provider auth env var is missing"
++                    },
+                 )
+                 .details(details)
+                 .remediation(remediation),
+@@ -3439,6 +3494,8 @@ mod tests {
+             /*provider_env_key_instructions*/ None,
+             Vec::new(),
+             |_| false,
++            /*keyring_enabled*/ false,
++            || panic!("provider without env_key must not load credentials"),
+         )
+         .expect("non-OpenAI provider should produce a provider-specific check");
+ 
+@@ -3457,6 +3514,8 @@ mod tests {
+             Some("Set PROVIDER_API_KEY before running Codex."),
+             Vec::new(),
+             |_| false,
++            /*keyring_enabled*/ false,
++            || panic!("disabled keyring must not be read"),
+         )
+         .expect("non-OpenAI provider should produce a provider-specific check");
+ 
+@@ -3471,6 +3530,124 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn provider_specific_auth_uses_keyring_when_env_key_is_missing() {
++        let check = provider_specific_auth_check(
++            /*requires_openai_auth*/ false,
++            Some("PROVIDER_API_KEY"),
++            /*provider_env_key_instructions*/ None,
++            Vec::new(),
++            |_| false,
++            /*keyring_enabled*/ true,
++            || Ok(Some("private-provider-token".to_string())),
++        )
++        .expect("provider auth check");
++
++        assert_eq!(check.status, CheckStatus::Ok);
++        assert_eq!(
++            check.summary,
++            "auth is provided by the active model provider keyring"
++        );
++        assert!(
++            check
++                .details
++                .iter()
++                .any(|detail| detail.contains("Codex Model Providers"))
++        );
++        assert!(
++            !serde_json::to_string(&check)
++                .expect("serialize check")
++                .contains("private-provider-token")
++        );
++    }
++
++    #[test]
++    fn provider_specific_auth_prefers_env_key_over_keyring() {
++        let check = provider_specific_auth_check(
++            /*requires_openai_auth*/ false,
++            Some("PROVIDER_API_KEY"),
++            /*provider_env_key_instructions*/ None,
++            Vec::new(),
++            |name| name == "PROVIDER_API_KEY",
++            /*keyring_enabled*/ true,
++            || panic!("present env key must bypass keyring"),
++        )
++        .expect("provider auth check");
++
++        assert_eq!(check.status, CheckStatus::Ok);
++        assert_eq!(
++            check.summary,
++            "auth is provided by the active model provider"
++        );
++    }
++
++    #[test]
++    fn provider_specific_auth_fails_for_missing_keyring_record() {
++        let check = provider_specific_auth_check(
++            /*requires_openai_auth*/ false,
++            Some("PROVIDER_API_KEY"),
++            /*provider_env_key_instructions*/ None,
++            Vec::new(),
++            |_| false,
++            /*keyring_enabled*/ true,
++            || Ok(None),
++        )
++        .expect("provider auth check");
++
++        assert_eq!(check.status, CheckStatus::Fail);
++        assert_eq!(
++            check.summary,
++            "active model provider credentials are missing"
++        );
++        assert!(
++            check
++                .remediation
++                .expect("remediation")
++                .contains("OS keyring record")
++        );
++    }
++
++    #[test]
++    fn provider_specific_auth_reports_unreadable_keyring_without_leaking_error() {
++        let check = provider_specific_auth_check(
++            /*requires_openai_auth*/ false,
++            Some("PROVIDER_API_KEY"),
++            /*provider_env_key_instructions*/ None,
++            Vec::new(),
++            |_| false,
++            /*keyring_enabled*/ true,
++            || {
++                Err(codex_protocol::error::CodexErr::KeyringRecord(
++                    codex_protocol::error::KeyringRecordError {
++                        service: "Codex Model Providers".to_string(),
++                        account: "PROVIDER_API_KEY".to_string(),
++                        instructions: None,
++                        cause: Some("private error detail".to_string()),
++                    },
++                ))
++            },
++        )
++        .expect("provider auth check");
++
++        assert_eq!(check.status, CheckStatus::Fail);
++        assert_eq!(
++            check.summary,
++            "active model provider keyring record could not be read"
++        );
++        assert!(
++            check
++                .remediation
++                .as_deref()
++                .expect("remediation")
++                .contains("Check OS keyring access")
++        );
++        assert!(
++            !serde_json::to_string(&check)
++                .expect("serialize check")
++                .contains("private error detail")
++        );
++    }
++
+     #[test]
+     fn stored_auth_validation_rejects_missing_api_key() {
+         let auth = AuthDotJson {
 diff --git a/codex-rs/model-provider-info/Cargo.toml b/codex-rs/model-provider-info/Cargo.toml
-index 827dd8744b..648086bdb5 100644
+index e7f48f14ad..744d4804cd 100644
 --- a/codex-rs/model-provider-info/Cargo.toml
 +++ b/codex-rs/model-provider-info/Cargo.toml
 @@ -14,6 +14,7 @@ workspace = true
@@ -23,10 +258,10 @@ index 827dd8744b..648086bdb5 100644
  codex-utils-redacted-string = { workspace = true }
  http = { workspace = true }
 diff --git a/codex-rs/model-provider-info/src/lib.rs b/codex-rs/model-provider-info/src/lib.rs
-index 3fb3e87a2a..0e7b3280af 100644
+index 3be93a6830..d44a882a3a 100644
 --- a/codex-rs/model-provider-info/src/lib.rs
 +++ b/codex-rs/model-provider-info/src/lib.rs
-@@ -7,10 +7,14 @@
+@@ -10,10 +10,14 @@
  
  use codex_api::Provider as ApiProvider;
  use codex_api::RetryConfig as ApiRetryConfig;
@@ -41,16 +276,16 @@ index 3fb3e87a2a..0e7b3280af 100644
  use codex_protocol::error::Result as CodexResult;
  use codex_utils_redacted_string::RedactedString;
  use http::HeaderMap;
-@@ -28,6 +32,8 @@ const DEFAULT_STREAM_IDLE_TIMEOUT_MS: u64 = 300_000;
- const DEFAULT_STREAM_MAX_RETRIES: u64 = 5;
+@@ -65,6 +69,8 @@ const DEFAULT_STREAM_MAX_RETRIES: u64 = 5;
  const DEFAULT_REQUEST_MAX_RETRIES: u64 = 4;
+ const DEFAULT_AWS_CREDENTIAL_EXPORT_TIMEOUT_MS: u64 = 30_000;
  const DEFAULT_AWS_AUTH_REFRESH_TIMEOUT_MS: u64 = 300_000;
 +const MODEL_PROVIDER_KEYRING_ENABLE_ENV_VAR: &str = "CODEX_ENABLE_PROVIDER_KEYRING";
 +const MODEL_PROVIDER_KEYRING_SERVICE: &str = "Codex Model Providers";
  pub const DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS: u64 = 15_000;
  /// Hard cap for user-configured `stream_max_retries`.
  const MAX_STREAM_MAX_RETRIES: u64 = 100;
-@@ -334,25 +340,72 @@ impl ModelProviderInfo {
+@@ -460,25 +466,75 @@ other non-default provider fields are not supported"
          })
      }
  
@@ -87,11 +322,7 @@ index 3fb3e87a2a..0e7b3280af 100644
 +            return Ok(Some(api_key));
          }
 +
-+        let keyring_enabled = std::env::var(MODEL_PROVIDER_KEYRING_ENABLE_ENV_VAR)
-+            .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
-+            .unwrap_or(false);
-+
-+        if keyring_enabled {
++        if self.keyring_enabled() {
 +            return self
 +                .keyring_api_key(&DefaultKeyringStore, env_key)
 +                .map_err(|err| match err.details() {
@@ -109,6 +340,13 @@ index 3fb3e87a2a..0e7b3280af 100644
 +            var: env_key.clone(),
 +            instructions: self.env_key_instructions.clone(),
 +        }))
++    }
++
++    /// Whether OS keyring fallback is enabled for provider API keys.
++    pub fn keyring_enabled(&self) -> bool {
++        std::env::var(MODEL_PROVIDER_KEYRING_ENABLE_ENV_VAR)
++            .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "yes" | "YES"))
++            .unwrap_or(false)
 +    }
 +
 +    fn keyring_api_key<K: KeyringStore>(
@@ -141,7 +379,7 @@ index 3fb3e87a2a..0e7b3280af 100644
  
      /// Effective maximum number of request retries for this provider.
 diff --git a/codex-rs/model-provider-info/src/model_provider_info_tests.rs b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
-index d08af0ffb5..970df4beb1 100644
+index c0c3971936..ab9a6f710e 100644
 --- a/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 +++ b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 @@ -1,4 +1,6 @@
@@ -151,7 +389,7 @@ index d08af0ffb5..970df4beb1 100644
  use codex_utils_absolute_path::AbsolutePathBuf;
  use codex_utils_absolute_path::AbsolutePathBufGuard;
  use pretty_assertions::assert_eq;
-@@ -597,6 +599,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
+@@ -677,6 +679,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
      );
  }
  
@@ -202,10 +440,10 @@ index d08af0ffb5..970df4beb1 100644
  fn test_validate_provider_aws_rejects_websockets() {
      let provider = ModelProviderInfo {
 diff --git a/codex-rs/protocol/src/error.rs b/codex-rs/protocol/src/error.rs
-index be0192f61a..8e6d8a21b5 100644
+index 609cdcab95..480bf8d17c 100644
 --- a/codex-rs/protocol/src/error.rs
 +++ b/codex-rs/protocol/src/error.rs
-@@ -187,6 +187,8 @@ pub enum CodexErrorDetails {
+@@ -191,6 +191,8 @@ pub enum CodexErrorDetails {
      TokioJoin(#[from] JoinError),
      #[error("{0}")]
      EnvVar(EnvVarError),
@@ -214,7 +452,7 @@ index be0192f61a..8e6d8a21b5 100644
  }
  
  impl From<&CodexErr> for CodexErrKind {
-@@ -348,6 +350,7 @@ impl CodexErr {
+@@ -352,6 +354,7 @@ impl CodexErr {
          LandlockPathFd(error: landlock::PathFdError),
          TokioJoin(error: JoinError),
          EnvVar(error: EnvVarError),
@@ -222,7 +460,7 @@ index be0192f61a..8e6d8a21b5 100644
      );
  
      // TODO(anp): Remove this compatibility constructor once callers construct
-@@ -374,6 +377,7 @@ impl CodexErr {
+@@ -382,6 +385,7 @@ impl CodexErr {
              | CodexErrorDetails::SessionBudgetExceeded
              | CodexErrorDetails::Interrupted
              | CodexErrorDetails::EnvVar(_)
@@ -230,7 +468,7 @@ index be0192f61a..8e6d8a21b5 100644
              | CodexErrorDetails::Fatal(_)
              | CodexErrorDetails::UsageNotIncluded
              | CodexErrorDetails::QuotaExceeded
-@@ -831,6 +835,40 @@ impl std::fmt::Display for EnvVarError {
+@@ -845,6 +849,40 @@ impl std::fmt::Display for EnvVarError {
      }
  }
  

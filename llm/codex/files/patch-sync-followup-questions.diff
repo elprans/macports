@@ -1,0 +1,287 @@
+diff --git a/codex-rs/core/src/tools/handlers/request_user_input_async.rs b/codex-rs/core/src/tools/handlers/request_user_input_async.rs
+index 2c4c7067ed..8f675d2080 100644
+--- a/codex-rs/core/src/tools/handlers/request_user_input_async.rs
++++ b/codex-rs/core/src/tools/handlers/request_user_input_async.rs
+@@ -6,12 +6,10 @@ use crate::tools::context::boxed_tool_output;
+ use crate::tools::handlers::parse_arguments;
+ use crate::tools::registry::CoreToolRuntime;
+ use crate::tools::registry::ToolExecutor;
+-use codex_protocol::items::AgentMessageContent;
+-use codex_protocol::items::AgentMessageDelivery;
+-use codex_protocol::items::AgentMessageItem;
+ use codex_protocol::items::AsyncUserInputQuestion;
+-use codex_protocol::items::TurnItem;
+-use codex_protocol::models::MessagePhase;
++use codex_protocol::request_user_input::RequestUserInputArgs;
++use codex_protocol::request_user_input::RequestUserInputQuestion;
++use codex_protocol::request_user_input::RequestUserInputQuestionOption;
+ use codex_tools::JsonSchema;
+ use codex_tools::ResponsesApiTool;
+ use codex_tools::ToolName;
+@@ -97,40 +95,63 @@ impl ToolExecutor<ToolInvocation> for RequestUserInputAsyncHandler {
+                     "questions must not be empty".to_string(),
+                 ));
+             }
+-            let mut messages = Vec::with_capacity(args.questions.len());
+-            for question in &args.questions {
++            let mut questions = Vec::with_capacity(args.questions.len());
++            for (index, question) in args.questions.into_iter().enumerate() {
+                 if question.title.trim().is_empty() {
+                     return Err(FunctionCallError::RespondToModel(
+                         "question titles must not be empty".to_string(),
+                     ));
+                 }
+-                let mut lines = vec![question.title.clone()];
+                 if let Some(options) = &question.options {
+                     if options.is_empty() || options.iter().any(|option| option.trim().is_empty()) {
+                         return Err(FunctionCallError::RespondToModel(
+                             "options must contain at least one non-empty answer".to_string(),
+                         ));
+                     }
+-                    lines.extend(options.iter().map(|option| format!("- {option}")));
+                 }
+-                messages.push(lines.join("\n"));
++                questions.push(RequestUserInputQuestion {
++                    id: format!("question_{index}"),
++                    header: format!("Question {}", index + 1),
++                    question: question.title,
++                    is_other: true,
++                    is_secret: false,
++                    options: question.options.map(|options| {
++                        options
++                            .into_iter()
++                            .map(|label| RequestUserInputQuestionOption {
++                                label,
++                                description: String::new(),
++                            })
++                            .collect()
++                    }),
++                });
+             }
+ 
+-            let item = TurnItem::AgentMessage(AgentMessageItem {
+-                id: call_id,
+-                content: vec![AgentMessageContent::Text {
+-                    text: messages.join("\n\n"),
+-                }],
+-                phase: Some(MessagePhase::FinalAnswer),
+-                memory_citation: None,
+-                delivery: Some(AgentMessageDelivery::Async),
+-                questions: Some(args.questions),
+-            });
+-            session.emit_turn_item_started(turn.as_ref(), &item).await;
+-            session.emit_turn_item_completed(turn.as_ref(), item).await;
++            let accepted = session
++                .request_user_input(
++                    turn.as_ref(),
++                    call_id,
++                    RequestUserInputArgs {
++                        questions,
++                        is_blocking: true,
++                        auto_resolution_ms: None,
++                    },
++                )
++                .await
++                .ok_or_else(|| {
++                    FunctionCallError::RespondToModel(
++                        "request_user_input_async was cancelled before receiving a response"
++                            .to_string(),
++                    )
++                })?;
++            let content = serde_json::to_string(&accepted.response).map_err(|err| {
++                FunctionCallError::Fatal(format!(
++                    "failed to serialize request_user_input_async response: {err}"
++                ))
++            })?;
+ 
+             Ok(boxed_tool_output(FunctionToolOutput::from_text(
+-                r#"{"accepted":true}"#.to_string(),
++                content,
+                 /*success*/ Some(true),
+             )))
+         })
+diff --git a/codex-rs/core/src/tools/spec_plan.rs b/codex-rs/core/src/tools/spec_plan.rs
+index f5c88e3b92..2002221a40 100644
+--- a/codex-rs/core/src/tools/spec_plan.rs
++++ b/codex-rs/core/src/tools/spec_plan.rs
+@@ -1136,8 +1136,7 @@ fn add_core_utility_tools(context: &CoreToolPlanContext<'_>, registry: &mut Tool
+     {
+         registry.add_with_exposure(
+             RequestUserInputAsyncHandler {
+-                description: ResolvedModelMessages::from_model(context.model_info)
+-                    .request_user_input_async_description()
++                description: "Ask the user one or more questions and wait for their answers before continuing the turn. Use only when the answer materially affects the next step. Questions appear immediately in a blocking prompt; the answer is returned in this tool result. The user can always enter a free-text answer, including when options are provided."
+                     .to_string(),
+             },
+             ToolExposure::DirectModelOnly,
+diff --git a/codex-rs/core/tests/suite/request_user_input_async.rs b/codex-rs/core/tests/suite/request_user_input_async.rs
+index 7ffb260371..d049948bb0 100644
+--- a/codex-rs/core/tests/suite/request_user_input_async.rs
++++ b/codex-rs/core/tests/suite/request_user_input_async.rs
+@@ -5,7 +5,6 @@ use codex_features::Feature;
+ use codex_protocol::items::AgentMessageContent;
+ use codex_protocol::items::AgentMessageDelivery;
+ use codex_protocol::items::AgentMessageItem;
+-use codex_protocol::items::AsyncUserInputQuestion;
+ use codex_protocol::items::TurnItem;
+ use codex_protocol::models::MessagePhase;
+ use codex_protocol::openai_models::ReasoningEffort;
+@@ -14,8 +13,11 @@ use codex_protocol::openai_models::ToolMessage;
+ use codex_protocol::openai_models::ToolMessages;
+ use codex_protocol::openai_models::ToolMode;
+ use codex_protocol::protocol::EventMsg;
++use codex_protocol::protocol::Op;
+ use codex_protocol::protocol::SessionSource;
+ use codex_protocol::protocol::SubAgentSource;
++use codex_protocol::request_user_input::RequestUserInputAnswer;
++use codex_protocol::request_user_input::RequestUserInputResponse;
+ use codex_protocol::user_input::UserInput;
+ use core_test_support::responses::ev_assistant_message;
+ use core_test_support::responses::ev_completed;
+@@ -31,6 +33,7 @@ use core_test_support::wait_for_event;
+ use core_test_support::wait_for_event_match;
+ use pretty_assertions::assert_eq;
+ use serde_json::json;
++use std::collections::HashMap;
+ use test_case::test_case;
+ 
+ #[test_case(SessionSource::Exec, false, false; "root_without_tool")]
+@@ -349,7 +352,7 @@ async fn freeform_async_message_emits_an_item_without_ending_the_turn(
+ #[test_case(Some(ToolMessages { send_user_message_async: Some(ToolMessage { description: Some("Catalog async message description.".to_string()), ..Default::default() }), ..Default::default() }), "send_user_message_async"; "catalog_description")]
+ #[test_case(Some(ToolMessages { send_user_message_async: Some(ToolMessage { description: Some(String::new()), ..Default::default() }), ..Default::default() }), "send_user_message_async"; "empty_description")]
+ #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+-async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
++async fn request_user_input_async_waits_for_answers_before_continuing(
+     tool_messages: Option<ToolMessages>,
+     catalog_tool_name: &'static str,
+ ) -> Result<()> {
+@@ -357,18 +360,6 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+ 
+     const CALL_ID: &str = "async-message-call";
+     const TITLE: &str = "Which environment should I use?";
+-    const MESSAGE: &str =
+-        "Which environment should I use?\n- Staging\n- Production\n\nWhat deadline should I use?";
+-    let questions = vec![
+-        AsyncUserInputQuestion {
+-            title: TITLE.to_string(),
+-            options: Some(vec!["Staging".to_string(), "Production".to_string()]),
+-        },
+-        AsyncUserInputQuestion {
+-            title: "What deadline should I use?".to_string(),
+-            options: None,
+-        },
+-    ];
+ 
+     let server = start_mock_server().await;
+     let responses = mount_sse_sequence(
+@@ -396,14 +387,7 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+         ],
+     )
+     .await;
+-    let expected_description = tool_messages
+-        .as_ref()
+-        .and_then(|tools| tools.send_user_message_async.as_ref())
+-        .and_then(|tool| tool.description.as_deref())
+-        .unwrap_or(
+-            "Ask the user one or more questions during ongoing work. Use this tool only to request missing information, preferences, constraints, clarification, or approval. The tool returns immediately without ending the turn or waiting for a reply; any reply arrives asynchronously as a new user message. Keep questions concise, self-contained, and easy to understand, using a level of detail appropriate to the user and task. The UI always allows a free-text answer, including when suggested options are provided. A preselected option is not submitted automatically.",
+-        )
+-        .to_string();
++    let expected_description = "Ask the user one or more questions and wait for their answers before continuing the turn. Use only when the answer materially affects the next step. Questions appear immediately in a blocking prompt; the answer is returned in this tool result. The user can always enter a free-text answer, including when options are provided.";
+     let test = test_codex()
+         .with_model_info_override("gpt-5.2", move |model| {
+             model.tool_mode = Some(ToolMode::CodeModeOnly);
+@@ -429,50 +413,46 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+         }]))
+         .await?;
+ 
+-    let started = wait_for_event_match(test.codex.as_ref(), |event| {
+-        let EventMsg::ItemStarted(event) = event else {
+-            return None;
+-        };
+-        let TurnItem::AgentMessage(message) = &event.item else {
+-            return None;
+-        };
+-        if message.delivery != Some(AgentMessageDelivery::Async) {
+-            return None;
+-        }
+-        Some(message.clone())
++    let prompt = wait_for_event_match(test.codex.as_ref(), |event| match event {
++        EventMsg::RequestUserInput(prompt) => Some(prompt.clone()),
++        _ => None,
+     })
+     .await;
++    assert_eq!(prompt.call_id, CALL_ID);
++    assert!(prompt.is_blocking);
++    assert_eq!(prompt.questions.len(), 2);
++    assert_eq!(prompt.questions[0].question, TITLE);
++    assert_eq!(prompt.questions[0].id, "question_0");
+     assert_eq!(
+-        serde_json::to_value(&started)?,
+-        serde_json::to_value(AgentMessageItem {
+-            id: CALL_ID.to_string(),
+-            content: vec![AgentMessageContent::Text {
+-                text: MESSAGE.to_string(),
+-            }],
+-            phase: Some(MessagePhase::FinalAnswer),
+-            memory_citation: None,
+-            delivery: Some(AgentMessageDelivery::Async),
+-            questions: Some(questions),
+-        })?
++        prompt.questions[0].options.as_ref().unwrap()[0].label,
++        "Staging"
+     );
++    assert_eq!(prompt.questions[1].question, "What deadline should I use?");
++    assert_eq!(prompt.questions[1].id, "question_1");
++    assert_eq!(responses.requests().len(), 1);
+ 
+-    let completed = wait_for_event_match(test.codex.as_ref(), |event| {
+-        let EventMsg::ItemCompleted(event) = event else {
+-            return None;
+-        };
+-        let TurnItem::AgentMessage(message) = &event.item else {
+-            return None;
+-        };
+-        if message.delivery != Some(AgentMessageDelivery::Async) {
+-            return None;
+-        }
+-        Some(message.clone())
+-    })
+-    .await;
+-    assert_eq!(
+-        serde_json::to_value(completed)?,
+-        serde_json::to_value(started)?
+-    );
++    let response = RequestUserInputResponse {
++        answers: HashMap::from([
++            (
++                "question_0".to_string(),
++                RequestUserInputAnswer {
++                    answers: vec!["Staging".to_string()],
++                },
++            ),
++            (
++                "question_1".to_string(),
++                RequestUserInputAnswer {
++                    answers: vec!["Tomorrow".to_string()],
++                },
++            ),
++        ]),
++    };
++    test.codex
++        .submit(Op::UserInputAnswer {
++            id: prompt.turn_id,
++            response: response.clone(),
++        })
++        .await?;
+ 
+     wait_for_event(test.codex.as_ref(), |event| {
+         matches!(event, EventMsg::TurnComplete(_))
+@@ -509,7 +489,7 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+     }
+     assert_eq!(
+         requests[1].function_call_output_text(CALL_ID),
+-        Some(r#"{"accepted":true}"#.to_string())
++        Some(serde_json::to_string(&response)?)
+     );
+     let has_synthetic_assistant_message = requests[1].input().into_iter().any(|item| {
+         item["type"] == "message" && item["role"] == "assistant" && item.to_string().contains(TITLE)

@@ -1,26 +1,34 @@
 # codex
 
-The [Portfile](../../llm/codex/Portfile) packages Codex 0.154.0 with local macOS integration and five feature patches beyond the default MacPorts recipe.
+The [Portfile](../../llm/codex/Portfile) packages Codex 0.156.1 with local macOS integration and seven patches beyond the default MacPorts recipe.
 
 ## Difference from MacPorts
 
-The default tree is at 0.152.1. The overlay advances Codex to 0.154.0 and adds local signing, optional sccache, conservative build resource controls, and five feature patches.
+The default tree is at 0.152.1. The overlay advances Codex to 0.156.1 and adds local signing, optional sccache, conservative build resource controls, six feature patches, and a compiler-compatibility patch.
 
 It signs `codex` and `codex-code-mode-host` with a stable local identity, hardened runtime, and dylib-loading entitlements, and installs both companion binaries together.
 
 The build uses Codex-published V8 pointer-compression and sandbox assets, optional sccache, a 25.6 GB per-job memory estimate, and no parallel build. Crate checksums live in a separate Tcl file to keep the Portfile maintainable.
 
+The ChatGPT crate raises its recursion limit to compile deeply nested async code with the MacPorts Rust release compiler.
+
 ## Local features
 
-Five local patches add opt-in keyring fallback, complete provider-cost accounting, per-connection system DNS refresh, proxy-independent Unix-socket access, and complete loopback traffic in restricted macOS sandboxes.
+Six local patches add keyring auth fallback, provider-cost accounting, restricted-sandbox socket access, synchronous follow-up questions, and removal of the long-thread compaction warning.
+
+The catalog-advertised asynchronous question tool uses [[codex:codex-rs/core/src/tools/handlers/request_user_input_async.rs#RequestUserInputAsyncHandler|the blocking user-input path]]. The TUI shows a question prompt immediately, and the active turn waits for the answers as a tool result instead of retaining hidden queued follow-ups.
+
+Successful local compaction still emits its compaction item and updates usage, but [[codex:codex-rs/core/src/compact.rs#run_compact_task_inner_impl|the compaction path]] no longer emits the generic long-thread warning.
 
 With `allow_local_binding`, restricted macOS sessions can bind IP sockets and exchange loopback traffic, including through `sendfile`, without receiving blanket outbound Internet access.
 
 Restricted sessions retain configured Unix-socket allowlists when the managed TCP proxy is disabled. Seatbelt merges, canonicalizes, and deduplicates all socket grants without starting a proxy or granting TCP/IP access; allow-all dominates.
 
-Sandbox TCP connections resolve direct targets and upstream proxy hostnames through the operating system for every connection, so persistent Codex processes follow network DNS changes. Address-family filtering preserves OS order, and resolved private addresses remain subject to final target policy.
+Keyring fallback extends [[codex:codex-rs/model-provider-info/src/lib.rs#ModelProviderInfo#api_key]]. [[codex:codex-rs/cli/src/doctor.rs#provider_specific_auth_check|Doctor's provider auth check]] follows the same precedence: a nonempty environment key wins, then an opt-in OS keyring record under service `Codex Model Providers` and the provider's `env_key` account. It distinguishes missing records from keyring access failures without including secret values or backend error text in reports.
 
-Keyring fallback extends [[codex:codex-rs/model-provider-info/src/lib.rs#ModelProviderInfo#api_key]]. Cost tracking treats upstream `usage_metadata.amount` as authoritative. If Vercel AI Gateway omits it, Codex authenticates `GET /v1/generation?id=...` and retries after 5, 15, and 60 seconds for the settled `total_cost`.
+Cost tracking treats upstream `usage_metadata.amount` as authoritative. If Vercel AI Gateway omits it, Codex authenticates `GET /v1/generation?id=...` and retries after 5, 15, and 60 seconds for the settled `total_cost`.
+
+Gateway WebSocket responses expose provider response IDs rather than their billing generation IDs, so this lookup cannot settle their costs. Leaving WebSockets disabled in the provider configuration uses the HTTP path for cost attribution.
 
 Totals use fixed-point USD micros and persist total, post-fork incremental cost, and completeness with token-count rollout events. They flow through [[codex:codex-rs/app-server-protocol/src/protocol/v2/thread.rs#ThreadTokenUsage]] into the footer, title, status line, `/status`, and exit summary without requiring backend usage access.
 

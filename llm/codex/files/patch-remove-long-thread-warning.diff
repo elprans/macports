@@ -1,0 +1,162 @@
+diff --git a/codex-rs/core/src/compact.rs b/codex-rs/core/src/compact.rs
+index cda296275b..b260b52dbf 100644
+--- a/codex-rs/core/src/compact.rs
++++ b/codex-rs/core/src/compact.rs
+@@ -46,7 +46,6 @@ use codex_protocol::models::InternalChatMessageMetadataPassthrough;
+ use codex_protocol::models::ResponseInputItem;
+ use codex_protocol::models::ResponseItem;
+ use codex_protocol::protocol::EventMsg;
+-use codex_protocol::protocol::WarningEvent;
+ use codex_protocol::user_input::UserInput;
+ use codex_rollout_trace::InferenceTraceContext;
+ use codex_utils_output_truncation::TruncationPolicy;
+@@ -405,10 +404,6 @@ async fn run_compact_task_inner_impl(
+ 
+     sess.emit_turn_item_completed(&turn_context, compaction_item)
+         .await;
+-    let warning = EventMsg::Warning(WarningEvent {
+-        message: "Heads up: Long threads and multiple compactions can cause the model to be less accurate. Start a new thread when possible to keep threads small and targeted.".to_string(),
+-    });
+-    sess.send_event(&turn_context, warning).await;
+     Ok(summary_suffix)
+ }
+ 
+diff --git a/codex-rs/core/tests/suite/compact.rs b/codex-rs/core/tests/suite/compact.rs
+index cfbcefc9d8..77d076d088 100644
+--- a/codex-rs/core/tests/suite/compact.rs
++++ b/codex-rs/core/tests/suite/compact.rs
+@@ -30,7 +30,6 @@ use codex_protocol::protocol::ItemCompletedEvent;
+ use codex_protocol::protocol::ItemStartedEvent;
+ use codex_protocol::protocol::Op;
+ use codex_protocol::protocol::ThreadSettingsOverrides;
+-use codex_protocol::protocol::WarningEvent;
+ use codex_protocol::user_input::UserInput;
+ use codex_utils_absolute_path::AbsolutePathBuf;
+ use codex_utils_path_uri::PathUri;
+@@ -97,8 +96,6 @@ const NEW_GLOBAL_INSTRUCTIONS: &str = "new global instructions";
+ const OLD_GLOBAL_INSTRUCTIONS: &str = "old global instructions";
+ const REMOTE_V2_SUMMARY: &str = "global-instructions-remote-v2-summary";
+ 
+-pub(super) const COMPACT_WARNING_MESSAGE: &str = "Heads up: Long threads and multiple compactions can cause the model to be less accurate. Start a new thread when possible to keep threads small and targeted.";
+-
+ fn ev_exec_command_call(call_id: &str, command: &str) -> serde_json::Value {
+     ev_function_call(
+         call_id,
+@@ -582,11 +579,6 @@ async fn summarize_context_three_requests_and_instructions(
+ 
+     // 2) Summarize – second hit should include the summarization prompt.
+     codex.submit(Op::Compact).await?;
+-    let warning_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+-    let EventMsg::Warning(WarningEvent { message }) = warning_event else {
+-        panic!("expected warning event after compact");
+-    };
+-    assert_eq!(message, COMPACT_WARNING_MESSAGE);
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     // 3) Next user input – third hit; history should include only the summary.
+@@ -827,7 +819,6 @@ async fn manual_pre_compact_block_decision_does_not_block_compaction() {
+     })
+     .await;
+     assert_eq!(completed.run.status, HookRunStatus::Failed);
+-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     let requests = request_log.requests();
+@@ -883,7 +874,6 @@ async fn compact_hooks_respect_matchers_and_post_runs_after_compaction() {
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     codex.submit(Op::Compact).await.expect("trigger compact");
+-    wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     assert_eq!(request_log.requests().len(), 2);
+@@ -947,11 +937,6 @@ async fn manual_compact_uses_custom_prompt() {
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     codex.submit(Op::Compact).await.expect("trigger compact");
+-    let warning_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+-    let EventMsg::Warning(WarningEvent { message }) = warning_event else {
+-        panic!("expected warning event after compact");
+-    };
+-    assert_eq!(message, COMPACT_WARNING_MESSAGE);
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     let requests = request_log.requests();
+@@ -3917,11 +3902,6 @@ async fn manual_compact_retries_after_context_window_error() {
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     codex.submit(Op::Compact).await.unwrap();
+-    let warning_event = wait_for_event(&codex, |ev| matches!(ev, EventMsg::Warning(_))).await;
+-    let EventMsg::Warning(WarningEvent { message }) = warning_event else {
+-        panic!("expected warning event after compact retry");
+-    };
+-    assert_eq!(message, COMPACT_WARNING_MESSAGE);
+     wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+ 
+     let requests = request_log.requests();
+diff --git a/codex-rs/core/tests/suite/compact_resume_fork.rs b/codex-rs/core/tests/suite/compact_resume_fork.rs
+index c2372d4076..d9e975f761 100644
+--- a/codex-rs/core/tests/suite/compact_resume_fork.rs
++++ b/codex-rs/core/tests/suite/compact_resume_fork.rs
+@@ -5,7 +5,6 @@
+ //! request payload that Codex would send to the model and assert that the
+ //! model-visible history matches the expected sequence of messages.
+ 
+-use super::compact::COMPACT_WARNING_MESSAGE;
+ use super::compact::FIRST_REPLY;
+ use super::compact::SUMMARY_TEXT;
+ use anyhow::Context;
+@@ -24,7 +23,6 @@ use codex_protocol::models::ContentItem;
+ use codex_protocol::models::ResponseItem;
+ use codex_protocol::protocol::EventMsg;
+ use codex_protocol::protocol::Op;
+-use codex_protocol::protocol::WarningEvent;
+ use codex_protocol::user_input::UserInput;
+ use core_test_support::ThreadIdle;
+ use core_test_support::responses::ResponseMock;
+@@ -653,17 +651,6 @@ async fn compact_conversation(conversation: &Arc<CodexThread>) {
+         .submit(Op::Compact)
+         .await
+         .expect("compact conversation");
+-    let warning_event = wait_for_event(conversation, |ev| {
+-        matches!(
+-            ev,
+-            EventMsg::Warning(WarningEvent { message }) if message == COMPACT_WARNING_MESSAGE
+-        )
+-    })
+-    .await;
+-    let EventMsg::Warning(WarningEvent { message }) = warning_event else {
+-        panic!("expected warning event after compact");
+-    };
+-    assert_eq!(message, COMPACT_WARNING_MESSAGE);
+     wait_for_event(conversation, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
+     ThreadIdle::wait(conversation).await;
+ }
+diff --git a/codex-rs/core/tests/suite/window_headers.rs b/codex-rs/core/tests/suite/window_headers.rs
+index 3cd3aabcf5..f161f5ad1e 100644
+--- a/codex-rs/core/tests/suite/window_headers.rs
++++ b/codex-rs/core/tests/suite/window_headers.rs
+@@ -1,11 +1,9 @@
+-use super::compact::COMPACT_WARNING_MESSAGE;
+ use anyhow::Result;
+ use codex_core::CodexThread;
+ use codex_core::TurnInputRequest;
+ use codex_core::compact::SUMMARIZATION_PROMPT;
+ use codex_protocol::protocol::EventMsg;
+ use codex_protocol::protocol::Op;
+-use codex_protocol::protocol::WarningEvent;
+ use codex_protocol::user_input::UserInput;
+ use core_test_support::responses::ResponsesRequest;
+ use core_test_support::responses::ev_assistant_message;
+@@ -151,11 +149,6 @@ async fn submit_user_turn(codex: &Arc<CodexThread>, text: &str) -> Result<()> {
+ 
+ async fn submit_compact_turn(codex: &Arc<CodexThread>) -> Result<()> {
+     codex.submit(Op::Compact).await?;
+-    let warning_event = wait_for_event(codex, |event| matches!(event, EventMsg::Warning(_))).await;
+-    let EventMsg::Warning(WarningEvent { message }) = warning_event else {
+-        panic!("expected warning event after compact");
+-    };
+-    assert_eq!(message, COMPACT_WARNING_MESSAGE);
+     wait_for_event(codex, |event| matches!(event, EventMsg::TurnComplete(_))).await;
+     Ok(())
+ }
