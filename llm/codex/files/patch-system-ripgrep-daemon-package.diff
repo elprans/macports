@@ -1,0 +1,50 @@
+diff --git a/codex-rs/app-server-daemon/src/prepare_install.rs b/codex-rs/app-server-daemon/src/prepare_install.rs
+index ecf2501d22..c1d710fd9f 100644
+--- a/codex-rs/app-server-daemon/src/prepare_install.rs
++++ b/codex-rs/app-server-daemon/src/prepare_install.rs
+@@ -437,11 +437,6 @@ fn validate_package(root: &Path) -> Result<()> {
+         } else {
+             "bin/codex-code-mode-host"
+         },
+-        if cfg!(windows) {
+-            "codex-path/rg.exe"
+-        } else {
+-            "codex-path/rg"
+-        },
+     ];
+     if cfg!(windows) {
+         names.extend([
+diff --git a/codex-rs/app-server-daemon/src/prepare_install_tests.rs b/codex-rs/app-server-daemon/src/prepare_install_tests.rs
+index 810a45b433..223d70ffaf 100644
+--- a/codex-rs/app-server-daemon/src/prepare_install_tests.rs
++++ b/codex-rs/app-server-daemon/src/prepare_install_tests.rs
+@@ -114,6 +114,29 @@ async fn incomplete_source_fails_without_selecting_it() {
+     assert!(!home.join("packages/app-server-daemon/current").exists());
+ }
+ 
++#[tokio::test]
++async fn package_without_bundled_ripgrep_is_accepted() {
++    let temp = tempfile::TempDir::new().expect("temp");
++    let source = temp.path().join("package");
++    let bin = package(&source, "0.152.0");
++    std::fs::remove_file(source.join("codex-path/rg")).expect("remove bundled ripgrep");
++    let home = temp.path().join("home");
++    prepare_from_package(
++        &daemon(&home),
++        &DaemonSettings::default(),
++        InstallMode::Missing,
++        Some(&source),
++        &bin,
++        |_| Ok(true),
++    )
++    .await
++    .expect("seed package without bundled ripgrep");
++    let selected = std::fs::canonicalize(home.join("packages/app-server-daemon/current"))
++        .expect("selected release");
++    assert!(validate_package(&selected).is_ok());
++    assert!(!selected.join("codex-path/rg").exists());
++}
++
+ #[cfg(target_os = "macos")]
+ #[tokio::test]
+ async fn provisioned_macos_bundle_seeds_from_its_running_executable() {

@@ -1,8 +1,8 @@
 diff --git a/codex-rs/core/src/compact.rs b/codex-rs/core/src/compact.rs
-index cda296275b..b260b52dbf 100644
+index 13d6816195..b3cd4391f8 100644
 --- a/codex-rs/core/src/compact.rs
 +++ b/codex-rs/core/src/compact.rs
-@@ -46,7 +46,6 @@ use codex_protocol::models::InternalChatMessageMetadataPassthrough;
+@@ -41,7 +41,6 @@ use codex_protocol::models::ContentItemKind;
  use codex_protocol::models::ResponseInputItem;
  use codex_protocol::models::ResponseItem;
  use codex_protocol::protocol::EventMsg;
@@ -10,7 +10,7 @@ index cda296275b..b260b52dbf 100644
  use codex_protocol::user_input::UserInput;
  use codex_rollout_trace::InferenceTraceContext;
  use codex_utils_output_truncation::TruncationPolicy;
-@@ -405,10 +404,6 @@ async fn run_compact_task_inner_impl(
+@@ -394,10 +393,6 @@ async fn run_compact_task_inner_impl(
  
      sess.emit_turn_item_completed(&turn_context, compaction_item)
          .await;
@@ -22,7 +22,7 @@ index cda296275b..b260b52dbf 100644
  }
  
 diff --git a/codex-rs/core/tests/suite/compact.rs b/codex-rs/core/tests/suite/compact.rs
-index cfbcefc9d8..77d076d088 100644
+index 7455ff786f..82f15e1e84 100644
 --- a/codex-rs/core/tests/suite/compact.rs
 +++ b/codex-rs/core/tests/suite/compact.rs
 @@ -30,7 +30,6 @@ use codex_protocol::protocol::ItemCompletedEvent;
@@ -42,7 +42,7 @@ index cfbcefc9d8..77d076d088 100644
  fn ev_exec_command_call(call_id: &str, command: &str) -> serde_json::Value {
      ev_function_call(
          call_id,
-@@ -582,11 +579,6 @@ async fn summarize_context_three_requests_and_instructions(
+@@ -588,11 +585,6 @@ async fn summarize_context_three_requests_and_instructions(
  
      // 2) Summarize – second hit should include the summarization prompt.
      codex.submit(Op::Compact).await?;
@@ -54,7 +54,7 @@ index cfbcefc9d8..77d076d088 100644
      wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
  
      // 3) Next user input – third hit; history should include only the summary.
-@@ -827,7 +819,6 @@ async fn manual_pre_compact_block_decision_does_not_block_compaction() {
+@@ -836,7 +828,6 @@ async fn manual_pre_compact_block_decision_does_not_block_compaction() {
      })
      .await;
      assert_eq!(completed.run.status, HookRunStatus::Failed);
@@ -62,7 +62,7 @@ index cfbcefc9d8..77d076d088 100644
      wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
  
      let requests = request_log.requests();
-@@ -883,7 +874,6 @@ async fn compact_hooks_respect_matchers_and_post_runs_after_compaction() {
+@@ -892,7 +883,6 @@ async fn compact_hooks_respect_matchers_and_post_runs_after_compaction() {
      wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
  
      codex.submit(Op::Compact).await.expect("trigger compact");
@@ -70,7 +70,7 @@ index cfbcefc9d8..77d076d088 100644
      wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
  
      assert_eq!(request_log.requests().len(), 2);
-@@ -947,11 +937,6 @@ async fn manual_compact_uses_custom_prompt() {
+@@ -956,11 +946,6 @@ async fn manual_compact_uses_custom_prompt() {
      wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
  
      codex.submit(Op::Compact).await.expect("trigger compact");
@@ -82,7 +82,7 @@ index cfbcefc9d8..77d076d088 100644
      wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
  
      let requests = request_log.requests();
-@@ -3917,11 +3902,6 @@ async fn manual_compact_retries_after_context_window_error() {
+@@ -3926,11 +3911,6 @@ async fn manual_compact_retries_after_context_window_error() {
      wait_for_event(&codex, |ev| matches!(ev, EventMsg::TurnComplete(_))).await;
  
      codex.submit(Op::Compact).await.unwrap();
@@ -95,7 +95,7 @@ index cfbcefc9d8..77d076d088 100644
  
      let requests = request_log.requests();
 diff --git a/codex-rs/core/tests/suite/compact_resume_fork.rs b/codex-rs/core/tests/suite/compact_resume_fork.rs
-index c2372d4076..d9e975f761 100644
+index 12ae3d701d..d14ab6f581 100644
 --- a/codex-rs/core/tests/suite/compact_resume_fork.rs
 +++ b/codex-rs/core/tests/suite/compact_resume_fork.rs
 @@ -5,7 +5,6 @@
@@ -133,7 +133,7 @@ index c2372d4076..d9e975f761 100644
      ThreadIdle::wait(conversation).await;
  }
 diff --git a/codex-rs/core/tests/suite/window_headers.rs b/codex-rs/core/tests/suite/window_headers.rs
-index 3cd3aabcf5..f161f5ad1e 100644
+index ae51db5345..22156d206c 100644
 --- a/codex-rs/core/tests/suite/window_headers.rs
 +++ b/codex-rs/core/tests/suite/window_headers.rs
 @@ -1,11 +1,9 @@

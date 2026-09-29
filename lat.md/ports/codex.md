@@ -1,20 +1,24 @@
 # codex
 
-The [Portfile](../../llm/codex/Portfile) packages Codex 0.156.1 with local macOS integration and seven patches beyond the default MacPorts recipe.
+The [Portfile](../../llm/codex/Portfile) packages Codex 0.159.1 with local macOS integration and nine patches beyond the default MacPorts recipe.
 
 ## Difference from MacPorts
 
-The default tree is at 0.152.1. The overlay advances Codex to 0.156.1 and adds local signing, optional sccache, conservative build resource controls, six feature patches, and a compiler-compatibility patch.
+The default tree is at 0.152.1. The overlay advances Codex to 0.159.1 and adds local signing, optional sccache, conservative build resource controls, eight feature patches, and a compiler-compatibility patch.
 
-It signs `codex` and `codex-code-mode-host` with a stable local identity, hardened runtime, and dylib-loading entitlements, and installs both companion binaries together.
+It signs `codex` and `codex-code-mode-host` with a stable local identity, hardened runtime, and dylib-loading entitlements. A `libexec/codex` package holds both binaries and a manifest; symlinks expose the commands in `bin`. The ripgrep port supplies search externally.
+
+The package layout identifies the shipped CLI without bundling ripgrep. The daemon runs that executable directly instead of copying it into managed releases; it replaces an older managed server when the PID record names a different executable path. Legacy managed installs keep their original selection behavior.
+
+Automatic daemon updates are off by default. Packaged CLIs stop the updater even if settings explicitly enable it; upgrading the port, not the daemon's release directory, changes the running app server. A separate patch lets daemon package validation accept system ripgrep, which the runtime discovers through `PATH`.
 
 The build uses Codex-published V8 pointer-compression and sandbox assets, optional sccache, a 25.6 GB per-job memory estimate, and no parallel build. Crate checksums live in a separate Tcl file to keep the Portfile maintainable.
 
-The ChatGPT crate raises its recursion limit to compile deeply nested async code with the MacPorts Rust release compiler.
+The compiler-compatibility patch raises the ChatGPT crate's recursion limit and follows the upstream network-policy helper rename so the source compiles.
 
 ## Local features
 
-Six local patches add keyring auth fallback, provider-cost accounting, restricted-sandbox socket access, synchronous follow-up questions, and removal of the long-thread compaction warning.
+Eight local patches add keyring fallback, cost accounting, sandbox socket access, synchronous follow-ups, warning removal, system ripgrep, and shipped-binary daemon startup.
 
 The catalog-advertised asynchronous question tool uses [[codex:codex-rs/core/src/tools/handlers/request_user_input_async.rs#RequestUserInputAsyncHandler|the blocking user-input path]]. The TUI shows a question prompt immediately, and the active turn waits for the answers as a tool result instead of retaining hidden queued follow-ups.
 

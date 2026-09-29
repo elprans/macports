@@ -5,7 +5,7 @@ PortGroup           app 1.1
 PortGroup           cargo 1.0
 PortGroup           github 1.0
 
-github.setup        openai codex 0.156.1 rust-v
+github.setup        openai codex 0.159.1 rust-v
 github.tarball_from archive
 revision            0
 
@@ -34,9 +34,9 @@ long_description    Codex CLI is OpenAI’s coding agent that you can run locall
                     It can read, change, and run code on your machine in the selected directory.
 
 checksums           ${distname}${extract.suffix} \
-                    rmd160  a6f4ff79d79f04a11e9771031cfec320e80599a2 \
-                    sha256  cd1e3d063dcf5e029815b7bb178c9017221ddd12bd49b879b14c1f4b09219a02 \
-                    size    15873682
+                    rmd160  04363df17b89fd12540260386f041c603d5e3050 \
+                    sha256  dbc5cad4ea2d7cf52996b05c275313e5f84418b3f3afb6a620aa491eadb6e6a1 \
+                    size    16567687
 
 # Load the crate list before expanding ${distpath} below. The Rust PortGroup
 # switches dist_subdir to cargo-crates when cargo.crates is nonempty.
@@ -85,7 +85,8 @@ checksums-append    ${v8_archive_dist} \
 # These are build inputs, not source archives.
 extract.only        ${distname}${extract.suffix}
 
-worksrcdir          ${distname}/${name}-rs
+set source_root     codex-rust-v${version}
+worksrcdir          ${source_root}/${name}-rs
 
 # Disable offline mode to workaround dependencies from Git
 cargo.offline_cmd
@@ -111,22 +112,25 @@ build.mem_per_job   25600
 # https://trac.macports.org/ticket/73571
 use_parallel_build  no
 
+depends_run-append  port:ripgrep
+
 depends_patch-append \
                     port:git
 patch.cmd           ${prefix}/bin/git
 patch.pre_args      apply --binary
-patch.dir           ${workpath}/${distname}
+patch.dir           ${workpath}/${source_root}
 patchfiles          patch-keyring-provider-auth-fallback.diff \
                     patch-provider-reported-thread-cost.diff \
                     patch-sandbox-unix-sockets.diff \
                     patch-sandbox-local-binding.diff \
-                    patch-chatgpt-recursion-limit.diff \
+                    patch-compiler-compatibility.diff \
                     patch-sync-followup-questions.diff \
-                    patch-remove-long-thread-warning.diff
+                    patch-remove-long-thread-warning.diff \
+                    patch-system-ripgrep-daemon-package.diff \
+                    patch-use-shipped-app-server.diff
 
-# Companion binary the code-mode tool spawns; codex resolves it from the
-# directory containing the codex executable itself, so it must live alongside
-# codex in ${prefix}/bin.
+# Keep the entrypoint and its code-mode helper in one package directory so the
+# daemon can run the shipped executable directly and find its helper.
 set codex_binaries    {codex codex-code-mode-host}
 
 # Only build the binaries we install; a bare workspace build would also
@@ -148,9 +152,19 @@ post-build {
 }
 
 destroot {
+    set package_root ${destroot}${prefix}/libexec/${name}
+    xinstall -d ${package_root}/bin ${package_root}/codex-resources \
+        ${destroot}${prefix}/bin
     foreach binary ${codex_binaries} {
         xinstall -m 755 \
             ${worksrcpath}/target/[cargo.rust_platform]/release/${binary} \
-            ${destroot}${prefix}/bin/
+            ${package_root}/bin/
+        file link -symbolic ${destroot}${prefix}/bin/${binary} \
+            ../libexec/${name}/bin/${binary}
     }
+    set manifest [open ${package_root}/codex-package.json w]
+    puts ${manifest} [format \
+        {{"layoutVersion":1,"version":"%s","target":"%s","variant":"codex","entrypoint":"bin/codex","resourcesDir":"codex-resources"}} \
+        ${version} ${v8_target}]
+    close ${manifest}
 }

@@ -1,5 +1,5 @@
 diff --git a/codex-rs/core/src/tools/handlers/request_user_input_async.rs b/codex-rs/core/src/tools/handlers/request_user_input_async.rs
-index 2c4c7067ed..8f675d2080 100644
+index da153dcd59..a21f4d9854 100644
 --- a/codex-rs/core/src/tools/handlers/request_user_input_async.rs
 +++ b/codex-rs/core/src/tools/handlers/request_user_input_async.rs
 @@ -6,12 +6,10 @@ use crate::tools::context::boxed_tool_output;
@@ -18,7 +18,7 @@ index 2c4c7067ed..8f675d2080 100644
  use codex_tools::JsonSchema;
  use codex_tools::ResponsesApiTool;
  use codex_tools::ToolName;
-@@ -97,40 +95,63 @@ impl ToolExecutor<ToolInvocation> for RequestUserInputAsyncHandler {
+@@ -109,40 +107,63 @@ impl ToolExecutor<ToolInvocation> for RequestUserInputAsyncHandler {
                      "questions must not be empty".to_string(),
                  ));
              }
@@ -101,21 +101,21 @@ index 2c4c7067ed..8f675d2080 100644
              )))
          })
 diff --git a/codex-rs/core/src/tools/spec_plan.rs b/codex-rs/core/src/tools/spec_plan.rs
-index f5c88e3b92..2002221a40 100644
+index bb1474feb5..f78b039b4b 100644
 --- a/codex-rs/core/src/tools/spec_plan.rs
 +++ b/codex-rs/core/src/tools/spec_plan.rs
-@@ -1136,8 +1136,7 @@ fn add_core_utility_tools(context: &CoreToolPlanContext<'_>, registry: &mut Tool
-     {
+@@ -1191,8 +1191,7 @@ fn add_core_utility_tools(context: &CoreToolPlanContext<'_>, registry: &mut Tool
+         let model_messages = ResolvedModelMessages::from_model(context.model_info);
          registry.add_with_exposure(
              RequestUserInputAsyncHandler {
--                description: ResolvedModelMessages::from_model(context.model_info)
+-                description: model_messages
 -                    .request_user_input_async_description()
 +                description: "Ask the user one or more questions and wait for their answers before continuing the turn. Use only when the answer materially affects the next step. Questions appear immediately in a blocking prompt; the answer is returned in this tool result. The user can always enter a free-text answer, including when options are provided."
                      .to_string(),
-             },
-             ToolExposure::DirectModelOnly,
+                 parameters: model_messages
+                     .request_user_input_async_parameters_override()
 diff --git a/codex-rs/core/tests/suite/request_user_input_async.rs b/codex-rs/core/tests/suite/request_user_input_async.rs
-index 7ffb260371..d049948bb0 100644
+index 9dfcc6b749..eccba02183 100644
 --- a/codex-rs/core/tests/suite/request_user_input_async.rs
 +++ b/codex-rs/core/tests/suite/request_user_input_async.rs
 @@ -5,7 +5,6 @@ use codex_features::Feature;
@@ -146,16 +146,16 @@ index 7ffb260371..d049948bb0 100644
  use test_case::test_case;
  
  #[test_case(SessionSource::Exec, false, false; "root_without_tool")]
-@@ -349,7 +352,7 @@ async fn freeform_async_message_emits_an_item_without_ending_the_turn(
- #[test_case(Some(ToolMessages { send_user_message_async: Some(ToolMessage { description: Some("Catalog async message description.".to_string()), ..Default::default() }), ..Default::default() }), "send_user_message_async"; "catalog_description")]
- #[test_case(Some(ToolMessages { send_user_message_async: Some(ToolMessage { description: Some(String::new()), ..Default::default() }), ..Default::default() }), "send_user_message_async"; "empty_description")]
+@@ -373,7 +376,7 @@ const CATALOG_ASYNC_PARAMETERS: &str = r#"{
+ #[test_case(Some(ToolMessages { send_user_message_async: Some(ToolMessage { parameters: Some(String::new()), ..Default::default() }), ..Default::default() }), "send_user_message_async", None; "empty_parameters_fallback")]
+ #[test_case(Some(ToolMessages { send_user_message_async: Some(ToolMessage { description: Some("Catalog async message description.".to_string()), parameters: Some(r#"{"type":"object","properties":{"questions":{"type":"unsupported"}}}"#.to_string()) }), ..Default::default() }), "send_user_message_async", None; "invalid_parameters_preserve_description")]
  #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 -async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
 +async fn request_user_input_async_waits_for_answers_before_continuing(
      tool_messages: Option<ToolMessages>,
      catalog_tool_name: &'static str,
- ) -> Result<()> {
-@@ -357,18 +360,6 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+     expected_parameters: Option<&'static str>,
+@@ -382,18 +385,6 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
  
      const CALL_ID: &str = "async-message-call";
      const TITLE: &str = "Which environment should I use?";
@@ -174,7 +174,7 @@ index 7ffb260371..d049948bb0 100644
  
      let server = start_mock_server().await;
      let responses = mount_sse_sequence(
-@@ -396,14 +387,7 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+@@ -421,14 +412,7 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
          ],
      )
      .await;
@@ -190,7 +190,7 @@ index 7ffb260371..d049948bb0 100644
      let test = test_codex()
          .with_model_info_override("gpt-5.2", move |model| {
              model.tool_mode = Some(ToolMode::CodeModeOnly);
-@@ -429,50 +413,46 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+@@ -454,50 +438,46 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
          }]))
          .await?;
  
@@ -276,7 +276,7 @@ index 7ffb260371..d049948bb0 100644
  
      wait_for_event(test.codex.as_ref(), |event| {
          matches!(event, EventMsg::TurnComplete(_))
-@@ -509,7 +489,7 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
+@@ -541,7 +521,7 @@ async fn request_user_input_async_emits_item_and_does_not_end_the_turn(
      }
      assert_eq!(
          requests[1].function_call_output_text(CALL_ID),

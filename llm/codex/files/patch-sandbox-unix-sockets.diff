@@ -1,5 +1,5 @@
 diff --git a/codex-rs/core/src/config/config_tests.rs b/codex-rs/core/src/config/config_tests.rs
-index 0bf3dcf638..7d7b0e9010 100644
+index fca03ece47..6934e20ae6 100644
 --- a/codex-rs/core/src/config/config_tests.rs
 +++ b/codex-rs/core/src/config/config_tests.rs
 @@ -37,6 +37,8 @@ use codex_config::permissions_toml::NetworkMitmActionToml;
@@ -11,7 +11,7 @@ index 0bf3dcf638..7d7b0e9010 100644
  use codex_config::permissions_toml::PermissionProfileToml;
  use codex_config::permissions_toml::PermissionsToml;
  use codex_config::permissions_toml::WorkspaceRootsToml;
-@@ -1786,6 +1788,71 @@ async fn network_proxy_feature_is_no_op_without_sandbox_network() -> std::io::Re
+@@ -1794,6 +1796,71 @@ async fn network_proxy_feature_is_no_op_without_sandbox_network() -> std::io::Re
      Ok(())
  }
  
@@ -84,10 +84,10 @@ index 0bf3dcf638..7d7b0e9010 100644
  async fn network_proxy_feature_matrix_preserves_sandbox_network_semantics() -> std::io::Result<()> {
      #[derive(Clone, Copy)]
 diff --git a/codex-rs/core/src/config/mod.rs b/codex-rs/core/src/config/mod.rs
-index e71ad88dde..4fdd7c83a4 100644
+index 571fc2d81b..9e6433fdb6 100644
 --- a/codex-rs/core/src/config/mod.rs
 +++ b/codex-rs/core/src/config/mod.rs
-@@ -566,14 +566,12 @@ impl Permissions {
+@@ -569,14 +569,12 @@ impl Permissions {
      }
  }
  
@@ -107,7 +107,7 @@ index e71ad88dde..4fdd7c83a4 100644
          PermissionProfile::Disabled => false,
      }
  }
-@@ -3516,7 +3514,7 @@ impl Config {
+@@ -3580,7 +3578,7 @@ impl Config {
              let (file_system_sandbox_policy, _network_sandbox_policy) =
                  permission_profile.to_runtime_permissions();
              let configured_network_proxy_config =
@@ -116,7 +116,7 @@ index e71ad88dde..4fdd7c83a4 100644
                      && profiles_are_active
                  {
                      // PermissionProfile carries the active network sandbox bit, not the configured
-@@ -4557,9 +4555,9 @@ impl Config {
+@@ -4651,9 +4649,9 @@ impl Config {
          active_permission_profile: &ActivePermissionProfile,
          permission_profile: &PermissionProfile,
      ) -> std::io::Result<Option<NetworkProxySpec>> {
@@ -143,7 +143,7 @@ index 6de02ee17f..df9961b496 100644
      }
  
 diff --git a/codex-rs/core/src/config/network_proxy_spec.rs b/codex-rs/core/src/config/network_proxy_spec.rs
-index f2a95fdb0d..db84f46895 100644
+index 53a61ddd10..83f9906a0e 100644
 --- a/codex-rs/core/src/config/network_proxy_spec.rs
 +++ b/codex-rs/core/src/config/network_proxy_spec.rs
 @@ -6,6 +6,7 @@ use codex_network_proxy::ConfigReloaderFuture;
@@ -176,7 +176,7 @@ index f2a95fdb0d..db84f46895 100644
          host_and_port_from_network_addr(&self.config.proxy_url, /*default_port*/ 3128)
      }
 diff --git a/codex-rs/core/src/tools/runtimes/unified_exec.rs b/codex-rs/core/src/tools/runtimes/unified_exec.rs
-index 354e9324d9..2f0c1a9162 100644
+index 722b8dffc1..f8bf73b75f 100644
 --- a/codex-rs/core/src/tools/runtimes/unified_exec.rs
 +++ b/codex-rs/core/src/tools/runtimes/unified_exec.rs
 @@ -4,6 +4,7 @@ Runtime: unified exec
@@ -187,7 +187,7 @@ index 354e9324d9..2f0c1a9162 100644
  use crate::exec::ExecCapturePolicy;
  use crate::exec::ExecExpiration;
  use crate::guardian::GUARDIAN_REVIEW_TIMEOUT;
-@@ -352,6 +353,14 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
+@@ -356,6 +357,14 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
          } else {
              None
          };
@@ -202,7 +202,7 @@ index 354e9324d9..2f0c1a9162 100644
          let (mut env, managed_network_context, network_proxy_launch) = match managed_network {
              Some(network) if environment_is_remote => {
                  let mut launch = network
-@@ -385,7 +394,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
+@@ -389,7 +398,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
                          })?);
                  }
                  if !launch.proxy.enabled {
@@ -211,7 +211,7 @@ index 354e9324d9..2f0c1a9162 100644
                  } else {
                      let environment_info =
                          req.turn_environment
-@@ -422,7 +431,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
+@@ -426,7 +435,7 @@ impl<'a> ToolRuntime<UnifiedExecRequest, UnifiedExecAttempt> for UnifiedExecRunt
                      })?;
                  (prepared.env, Some(prepared.sandbox_context), None)
              }
@@ -235,10 +235,10 @@ index 0142440f6c..099081b410 100644
      let command = || SandboxCommand {
          program: "/bin/bash".into(),
 diff --git a/codex-rs/core/src/unified_exec/process_manager_tests.rs b/codex-rs/core/src/unified_exec/process_manager_tests.rs
-index 297c84fa76..e2b2aeaffd 100644
+index 7edc743ce4..3976936771 100644
 --- a/codex-rs/core/src/unified_exec/process_manager_tests.rs
 +++ b/codex-rs/core/src/unified_exec/process_manager_tests.rs
-@@ -178,7 +178,8 @@ fn exec_server_params_use_path_uri_and_env_policy_overlay_contract() {
+@@ -179,7 +179,8 @@ fn exec_server_params_use_path_uri_and_env_policy_overlay_contract() {
      let managed_network = ManagedNetworkSandboxContext {
          loopback_ports: vec![43123],
          allow_local_binding: false,
@@ -249,10 +249,10 @@ index 297c84fa76..e2b2aeaffd 100644
      let mut request = ExecRequest {
          command: vec!["bash".to_string(), "-lc".to_string(), "true".to_string()],
 diff --git a/codex-rs/exec-server-protocol/src/protocol.rs b/codex-rs/exec-server-protocol/src/protocol.rs
-index fc9060f564..2648315781 100644
+index 84b266432f..74cc2907a6 100644
 --- a/codex-rs/exec-server-protocol/src/protocol.rs
 +++ b/codex-rs/exec-server-protocol/src/protocol.rs
-@@ -1258,6 +1258,23 @@ mod tests {
+@@ -1284,6 +1284,23 @@ mod tests {
              serde_json::from_value(serialized.clone()).expect("deserialize exec params");
          assert_eq!(round_trip, params);
  
@@ -277,10 +277,10 @@ index fc9060f564..2648315781 100644
              .as_object_mut()
              .expect("exec params object")
 diff --git a/codex-rs/exec-server/src/process_sandbox_tests.rs b/codex-rs/exec-server/src/process_sandbox_tests.rs
-index 7f415f4dde..50ac2b16af 100644
+index ef3c1e0f11..9d8531a096 100644
 --- a/codex-rs/exec-server/src/process_sandbox_tests.rs
 +++ b/codex-rs/exec-server/src/process_sandbox_tests.rs
-@@ -272,7 +272,11 @@ fn managed_network_sandbox_request() -> (ExecParams, ExecServerRuntimePaths) {
+@@ -272,7 +272,11 @@ fn managed_network_sandbox_request() -> (ExecParams, ExecServerRuntimeOptions) {
          arg0: None,
          sandbox: Some(sandbox),
          enforce_managed_network: true,
@@ -356,10 +356,10 @@ index 7f415f4dde..50ac2b16af 100644
  async fn native_request_preserves_native_launch_fields() {
      let cwd: AbsolutePathBuf = std::env::current_dir()
 diff --git a/codex-rs/network-proxy/src/proxy.rs b/codex-rs/network-proxy/src/proxy.rs
-index 574dcba407..5dad92733c 100644
+index 7ca8bb20df..2be0adaf28 100644
 --- a/codex-rs/network-proxy/src/proxy.rs
 +++ b/codex-rs/network-proxy/src/proxy.rs
-@@ -2209,6 +2209,30 @@ mod tests {
+@@ -2215,6 +2215,30 @@ mod tests {
          );
      }
  
@@ -391,10 +391,10 @@ index 574dcba407..5dad92733c 100644
      async fn prepare_for_optional_environment_preserves_effective_unix_socket_permissions()
      -> Result<()> {
 diff --git a/codex-rs/sandboxing/src/seatbelt.rs b/codex-rs/sandboxing/src/seatbelt.rs
-index 3597649f8a..b3f4f63076 100644
+index 665f24f86d..85f3234fb8 100644
 --- a/codex-rs/sandboxing/src/seatbelt.rs
 +++ b/codex-rs/sandboxing/src/seatbelt.rs
-@@ -186,7 +186,7 @@ fn proxy_policy_inputs(
+@@ -189,7 +189,7 @@ fn proxy_policy_inputs(
      if let Some(managed_network) = managed_network {
          return Ok(ProxyPolicyInputs {
              ports: managed_network.loopback_ports.clone(),
@@ -404,7 +404,7 @@ index 3597649f8a..b3f4f63076 100644
              unix_domain_socket_policy,
          });
 diff --git a/codex-rs/sandboxing/src/seatbelt_tests.rs b/codex-rs/sandboxing/src/seatbelt_tests.rs
-index 90e7537c59..00ad9a31e7 100644
+index 88ae9b97c3..a82c72fd73 100644
 --- a/codex-rs/sandboxing/src/seatbelt_tests.rs
 +++ b/codex-rs/sandboxing/src/seatbelt_tests.rs
 @@ -11,6 +11,7 @@ use super::create_seatbelt_command_args_for_legacy_policy;
@@ -426,7 +426,7 @@ index 90e7537c59..00ad9a31e7 100644
  use std::path::Path;
  use std::path::PathBuf;
  use std::process::Command;
-@@ -740,7 +745,7 @@ fn prepared_managed_network_context_allows_only_its_proxy_ports() {
+@@ -902,7 +907,7 @@ fn prepared_managed_network_context_allows_only_its_proxy_ports() {
      let managed_network = ManagedNetworkSandboxContext {
          loopback_ports: vec![43123, 48081],
          allow_local_binding: false,
@@ -435,7 +435,7 @@ index 90e7537c59..00ad9a31e7 100644
      };
      let args = create_seatbelt_command_args(CreateSeatbeltCommandArgsParams {
          command: vec!["/bin/true".to_string()],
-@@ -1477,13 +1482,15 @@ fn create_seatbelt_args_allowlists_explicit_unix_socket_paths_without_proxy() {
+@@ -1639,13 +1644,15 @@ fn create_seatbelt_args_allowlists_explicit_unix_socket_paths_without_proxy() {
  }
  
  #[tokio::test]
@@ -452,7 +452,7 @@ index 90e7537c59..00ad9a31e7 100644
      let explicit_socket = "/tmp/codex-browser-use";
      let mut network_config = NetworkProxyConfig {
          enabled: true,
-@@ -1505,6 +1512,15 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
+@@ -1667,6 +1674,15 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
          .build()
          .await?;
      let extra_allow_unix_sockets = vec![absolute_path(explicit_socket)];
@@ -468,7 +468,7 @@ index 90e7537c59..00ad9a31e7 100644
  
      let args = create_seatbelt_command_args(CreateSeatbeltCommandArgsParams {
          command: vec!["/usr/bin/true".to_string()],
-@@ -1512,7 +1528,7 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
+@@ -1674,7 +1690,7 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
          network_sandbox_policy: NetworkSandboxPolicy::Restricted,
          sandbox_policy_cwd: cwd.path(),
          enforce_managed_network: false,
@@ -477,7 +477,7 @@ index 90e7537c59..00ad9a31e7 100644
          environment_id: None,
          network: Some(&network_proxy),
          extra_allow_unix_sockets: &extra_allow_unix_sockets,
-@@ -1521,6 +1537,8 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
+@@ -1683,6 +1699,8 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
  
      let expected_explicit_socket = normalize_path_for_sandbox(Path::new(explicit_socket))
          .expect("explicit socket root should normalize");
@@ -486,7 +486,7 @@ index 90e7537c59..00ad9a31e7 100644
      let expected_network_socket = normalize_path_for_sandbox(Path::new(network_socket))
          .expect("network socket root should normalize");
      let unix_socket_definitions = args
-@@ -1535,13 +1553,140 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
+@@ -1697,13 +1715,140 @@ async fn create_seatbelt_args_merges_proxy_and_explicit_unix_socket_paths() -> a
                  "-DUNIX_SOCKET_PATH_0={}",
                  expected_explicit_socket.display()
              ),

@@ -1,8 +1,8 @@
 diff --git a/codex-rs/sandboxing/src/seatbelt.rs b/codex-rs/sandboxing/src/seatbelt.rs
-index b3f4f63076..5c27825971 100644
+index 85f3234fb8..a155048a83 100644
 --- a/codex-rs/sandboxing/src/seatbelt.rs
 +++ b/codex-rs/sandboxing/src/seatbelt.rs
-@@ -332,6 +332,7 @@ fn dynamic_network_policy_for_network(
+@@ -335,6 +335,7 @@ fn dynamic_network_policy_for_network(
              policy.push_str("; allow local binding and loopback traffic\n");
              policy.push_str("(allow network-bind (local ip \"*:*\"))\n");
              policy.push_str("(allow network-inbound (local ip \"localhost:*\"))\n");
@@ -11,7 +11,7 @@ index b3f4f63076..5c27825971 100644
          }
          if proxy.allow_local_binding && !proxy.ports.is_empty() {
 diff --git a/codex-rs/sandboxing/src/seatbelt_tests.rs b/codex-rs/sandboxing/src/seatbelt_tests.rs
-index 00ad9a31e7..d69f3fe481 100644
+index a82c72fd73..31bcd2043f 100644
 --- a/codex-rs/sandboxing/src/seatbelt_tests.rs
 +++ b/codex-rs/sandboxing/src/seatbelt_tests.rs
 @@ -39,7 +39,15 @@ use pretty_assertions::assert_eq;
@@ -41,7 +41,7 @@ index 00ad9a31e7..d69f3fe481 100644
      assert!(
          !policy.contains("(allow network-outbound (remote ip \"*:53\"))"),
          "policy should not allow raw DNS unless local binding is explicitly enabled:\n{policy}"
-@@ -1291,6 +1303,10 @@ fn create_seatbelt_args_allows_local_binding_when_explicitly_enabled() {
+@@ -1453,6 +1465,10 @@ fn create_seatbelt_args_allows_local_binding_when_explicitly_enabled() {
          policy.contains("(allow network-inbound (local ip \"localhost:*\"))"),
          "policy should allow loopback inbound when explicitly enabled:\n{policy}"
      );
@@ -52,7 +52,7 @@ index 00ad9a31e7..d69f3fe481 100644
      assert!(
          policy.contains("(allow network-outbound (remote ip \"localhost:*\"))"),
          "policy should allow loopback outbound when explicitly enabled:\n{policy}"
-@@ -1305,6 +1321,112 @@ fn create_seatbelt_args_allows_local_binding_when_explicitly_enabled() {
+@@ -1467,6 +1483,112 @@ fn create_seatbelt_args_allows_local_binding_when_explicitly_enabled() {
      );
  }
  
