@@ -3,7 +3,7 @@
 PortSystem          1.0
 PortGroup           golang 1.0
 
-go.setup            github.com/vercel/veil 0.0.7 v
+go.setup            github.com/vercel/veil 0.0.11 v
 go.offline_build    no
 go.toolchain_min    1.26.1
 revision            0
@@ -24,9 +24,9 @@ maintainers         {gmail.com:elprans @elprans} \
 supported_archs     arm64 x86_64
 
 checksums           ${distname}${extract.suffix} \
-                    rmd160  f0a8c2be131c37f41c5ace0d622ebf79d76fcf6c \
-                    sha256  ffb0b85756b39e6763e05a5c9e61b1c375532d7b1db101f1517a90ae67e90c0c \
-                    size    217810
+                    rmd160  13302771edd489e0ac2b094e47571edd5f8b0c49 \
+                    sha256  dffe55473cbd5a8fb53681e3aee39856d1d415beda892ec49b5fdcbb5fac20b5 \
+                    size    433018
 
 build.pre_args-append \
                     -trimpath \
