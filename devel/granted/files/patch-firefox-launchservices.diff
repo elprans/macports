@@ -1,0 +1,131 @@
+From 62835f8e0024d29ce1256ec0b7ad4774294ffcea Mon Sep 17 00:00:00 2001
+From: Elvis Pranskevichus <el@prans.net>
+Date: Thu, 1 Oct 2026 15:39:44 -0700
+Subject: [PATCH] fix(firefox): use LaunchServices for macOS app bundles
+
+---
+ pkg/launcher/firefox.go      | 31 +++++++++++++++++-
+ pkg/launcher/firefox_test.go | 63 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 93 insertions(+), 1 deletion(-)
+ create mode 100644 pkg/launcher/firefox_test.go
+
+diff --git pkg/launcher/firefox.go pkg/launcher/firefox.go
+index dbc5b11..c0d2d02 100644
+--- pkg/launcher/firefox.go
++++ pkg/launcher/firefox.go
+@@ -1,11 +1,21 @@
+ package launcher
+ 
++import (
++	"path/filepath"
++	"runtime"
++)
++
+ type Firefox struct {
+ 	// ExecutablePath is the path to the Firefox binary on the system.
+ 	ExecutablePath string
+ }
+ 
+ func (l Firefox) LaunchCommand(url string, profile string) ([]string, error) {
++	if app := l.applicationPath(); app != "" {
++		// LaunchServices forwards the URL to the running app, preserving its
++		// selected Firefox profile instead of starting the executable directly.
++		return []string{"/usr/bin/open", "-a", app, url}, nil
++	}
+ 	return []string{
+ 		l.ExecutablePath,
+ 		"--new-tab",
+@@ -13,4 +23,23 @@ func (l Firefox) LaunchCommand(url string, profile string) ([]string, error) {
+ 	}, nil
+ }
+ 
+-func (l Firefox) UseForkProcess() bool { return true }
++func (l Firefox) UseForkProcess() bool { return l.applicationPath() == "" }
++
++// applicationPath identifies macOS app bundles, including executable symlinks.
++// Other installations retain the direct executable launcher.
++func (l Firefox) applicationPath() string {
++	if runtime.GOOS != "darwin" {
++		return ""
++	}
++	executable := l.ExecutablePath
++	if resolved, err := filepath.EvalSymlinks(executable); err == nil {
++		executable = resolved
++	}
++	macOS := filepath.Dir(executable)
++	contents := filepath.Dir(macOS)
++	app := filepath.Dir(contents)
++	if filepath.Base(macOS) != "MacOS" || filepath.Base(contents) != "Contents" || filepath.Ext(app) != ".app" {
++		return ""
++	}
++	return app
++}
+diff --git pkg/launcher/firefox_test.go pkg/launcher/firefox_test.go
+new file mode 100644
+index 0000000..7cef618
+--- /dev/null
++++ pkg/launcher/firefox_test.go
+@@ -0,0 +1,63 @@
++package launcher
++
++import (
++	"os"
++	"path/filepath"
++	"reflect"
++	"runtime"
++	"testing"
++)
++
++func TestFirefox_MacOSApplicationLaunch(t *testing.T) {
++	if runtime.GOOS != "darwin" {
++		t.Skip("macOS LaunchServices")
++	}
++	app := filepath.Join(t.TempDir(), "Firefox With Spaces.app")
++	executable := filepath.Join(app, "Contents", "MacOS", "firefox")
++	if err := os.MkdirAll(filepath.Dir(executable), 0700); err != nil {
++		t.Fatal(err)
++	}
++	if err := os.WriteFile(executable, nil, 0600); err != nil {
++		t.Fatal(err)
++	}
++	link := filepath.Join(t.TempDir(), "firefox")
++	if err := os.Symlink(executable, link); err != nil {
++		t.Fatal(err)
++	}
++	resolved, err := filepath.EvalSymlinks(app)
++	if err != nil {
++		t.Fatal(err)
++	}
++	const url = "ext+granted-containers:name=prod/ReadOnly&url=https%3A%2F%2Fexample.com%2F%3Fx%3D1%26y%3D2&color=red&icon=briefcase"
++	for _, path := range []string{executable, link} {
++		t.Run(path, func(t *testing.T) {
++			l := Firefox{ExecutablePath: path}
++			got, err := l.LaunchCommand(url, "prod/ReadOnly")
++			if err != nil {
++				t.Fatal(err)
++			}
++			want := []string{"/usr/bin/open", "-a", resolved, url}
++			if !reflect.DeepEqual(got, want) {
++				t.Fatalf("got %q, want %q", got, want)
++			}
++			if l.UseForkProcess() {
++				t.Fatal("LaunchServices must not use forkprocess")
++			}
++		})
++	}
++}
++
++func TestFirefox_NonApplicationLaunch(t *testing.T) {
++	l := Firefox{ExecutablePath: "/usr/bin/firefox"}
++	got, err := l.LaunchCommand("https://example.com", "prod")
++	if err != nil {
++		t.Fatal(err)
++	}
++	want := []string{"/usr/bin/firefox", "--new-tab", "https://example.com"}
++	if !reflect.DeepEqual(got, want) {
++		t.Fatalf("got %q, want %q", got, want)
++	}
++	if !l.UseForkProcess() {
++		t.Fatal("non-application launch must retain forkprocess")
++	}
++}

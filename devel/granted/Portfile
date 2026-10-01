@@ -3,7 +3,7 @@
 PortSystem          1.0
 
 version             0.39.0
-revision            0
+revision            1
 
 PortGroup           golang 1.0
 
@@ -59,7 +59,9 @@ github.tarball_from archive
 
 dist_subdir         ${name}
 
-patch {
+patchfiles          patch-firefox-launchservices.diff
+
+post-patch {
     reinplace -E {s|/usr/local/bin|${prefix}/bin|g} ${worksrcpath}/pkg/alias/alias.go
 }
 
