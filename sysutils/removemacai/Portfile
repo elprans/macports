@@ -1,0 +1,73 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+
+PortSystem          1.0
+PortGroup           github 1.0
+PortGroup           xcodeversion 1.0
+
+github.setup        omlahore RemoveMacAI 0.2.4 v
+github.tarball_from archive
+name                removemacai
+revision            0
+
+categories          sysutils
+platforms           {darwin >= 26}
+supported_archs     arm64
+installs_libs       no
+license             MIT
+maintainers         {gmail.com:elprans @elprans} \
+                    openmaintainer
+
+description         Disable Apple Intelligence and remove its downloaded models
+long_description    RemoveMacAI is a command-line tool for Apple Silicon Macs \
+                    running macOS 27. It disables Apple Intelligence features \
+                    through a configuration profile, removes downloaded models \
+                    using Apple's asset service, and prevents their download. \
+                    Its changes can be reverted.
+
+checksums           rmd160  1837cb40ecc8051241c6d268a6ea8185e66ff45f \
+                    sha256  f23bde5179ae82b5731a229f70003eaba190cc8267ff8b52dc1528070c627def \
+                    size    4099534
+
+# Package.swift requires Swift 5.10, first shipped with Xcode 15.3.
+minimum_xcodeversions \
+                    {26 15.3}
+
+use_configure       no
+use_xcode           yes
+
+# Keep MacPorts headers out of the Swift and Objective-C SDK imports.
+compiler.cpath
+
+build.cmd           /usr/bin/xcrun
+build.target        swift build
+build.args          --configuration release \
+                    --arch ${configure.build_arch} \
+                    --product removemacai \
+                    --disable-sandbox \
+                    --cache-path ${workpath}/.swiftpm/cache \
+                    --config-path ${workpath}/.swiftpm/config \
+                    --security-path ${workpath}/.swiftpm/security
+build.env-append    CLANG_MODULE_CACHE_PATH=${workpath}/.swiftpm/clang-cache \
+                    SWIFTPM_MODULECACHE_OVERRIDE=${workpath}/.swiftpm/module-cache
+
+# Upstream's self-test does not change settings or contact the asset service.
+test.run            yes
+test.cmd            ${worksrcpath}/.build/release/removemacai
+test.target         selftest
+
+destroot {
+    xinstall -m 0755 ${worksrcpath}/.build/release/removemacai \
+        ${destroot}${prefix}/bin/
+
+    set docdir ${destroot}${prefix}/share/doc/${name}
+    xinstall -d ${docdir}
+    xinstall -m 0644 -W ${worksrcpath} \
+        LICENSE THIRD-PARTY-NOTICES.md README.md ${docdir}
+}
+
+notes "
+    Run 'removemacai status' to inspect the current state or\
+    'removemacai off --dry-run' to preview changes. Applying the configuration\
+    profile requires approval in System Settings.\
+    Run 'removemacai revert' before uninstalling to undo its changes.
+"
