@@ -1,15 +1,5 @@
-diff --git a/codex-rs/chatgpt/src/lib.rs b/codex-rs/chatgpt/src/lib.rs
-index 057478db18..5589621149 100644
---- a/codex-rs/chatgpt/src/lib.rs
-+++ b/codex-rs/chatgpt/src/lib.rs
-@@ -1,3 +1,5 @@
-+#![recursion_limit = "256"]
-+
- pub mod apply_command;
- mod chatgpt_client;
- pub mod connectors;
 diff --git a/codex-rs/core/src/config/windows_sandbox_config.rs b/codex-rs/core/src/config/windows_sandbox_config.rs
-index c4f4530321..4e3325b5c8 100644
+index dbe88ba9f1..4cfc45d529 100644
 --- a/codex-rs/core/src/config/windows_sandbox_config.rs
 +++ b/codex-rs/core/src/config/windows_sandbox_config.rs
 @@ -7,7 +7,7 @@ use super::EffectivePermissionSelection;
@@ -21,9 +11,9 @@ index c4f4530321..4e3325b5c8 100644
  use codex_config::ConstrainedWithSource;
  use codex_config::NetworkConstraints;
  use codex_config::Sourced;
-@@ -102,7 +102,7 @@ pub(super) fn network_config_allows_mxc(
-     enable_network_proxy: bool,
- ) -> std::io::Result<bool> {
+@@ -112,7 +112,7 @@ pub(super) fn config_allows_mxc(
+         return Ok(false);
+     }
      let profile_local_binding = if profiles_are_active
 -        && permission_profile.is_none_or(profile_allows_configured_network_proxy)
 +        && permission_profile.is_none_or(profile_allows_configured_network_policy)

@@ -1,8 +1,8 @@
 diff --git a/codex-rs/app-server-daemon/src/prepare_install.rs b/codex-rs/app-server-daemon/src/prepare_install.rs
-index ecf2501d22..c1d710fd9f 100644
+index 3b09a604db..62b0ded190 100644
 --- a/codex-rs/app-server-daemon/src/prepare_install.rs
 +++ b/codex-rs/app-server-daemon/src/prepare_install.rs
-@@ -437,11 +437,6 @@ fn validate_package(root: &Path) -> Result<()> {
+@@ -442,11 +442,6 @@ fn validate_package(root: &Path) -> Result<()> {
          } else {
              "bin/codex-code-mode-host"
          },
@@ -15,10 +15,10 @@ index ecf2501d22..c1d710fd9f 100644
      if cfg!(windows) {
          names.extend([
 diff --git a/codex-rs/app-server-daemon/src/prepare_install_tests.rs b/codex-rs/app-server-daemon/src/prepare_install_tests.rs
-index 810a45b433..223d70ffaf 100644
+index eaa89527c7..9704298282 100644
 --- a/codex-rs/app-server-daemon/src/prepare_install_tests.rs
 +++ b/codex-rs/app-server-daemon/src/prepare_install_tests.rs
-@@ -114,6 +114,29 @@ async fn incomplete_source_fails_without_selecting_it() {
+@@ -102,6 +102,29 @@ async fn incomplete_source_fails_without_selecting_it() {
      assert!(!home.join("packages/app-server-daemon/current").exists());
  }
  

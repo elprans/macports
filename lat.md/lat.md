@@ -15,7 +15,7 @@ lat:
       strategy: fetch
     codex:
       repo: https://github.com/openai/codex
-      commit: 51519ef09e869b1503f03dcf730d1084210fef19
+      commit: dfc388265f1f16ae4d7927f64e39759e3f0e171f
       strategy: fetch
     freerdp:
       repo: https://github.com/FreeRDP/FreeRDP

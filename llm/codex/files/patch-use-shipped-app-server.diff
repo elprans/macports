@@ -1,5 +1,5 @@
 diff --git a/codex-rs/app-server-daemon/src/backend/pid.rs b/codex-rs/app-server-daemon/src/backend/pid.rs
-index 22e34d9095..0e389e6cf8 100644
+index fce30642d5..e7f93376e4 100644
 --- a/codex-rs/app-server-daemon/src/backend/pid.rs
 +++ b/codex-rs/app-server-daemon/src/backend/pid.rs
 @@ -54,6 +54,8 @@ struct PidRecord {
@@ -40,19 +40,19 @@ index 0454e529e0..3d60453a12 100644
      std::fs::write(&path, serde_json::to_vec(&record).unwrap()).unwrap();
      let backend = PidBackend::new(
 diff --git a/codex-rs/app-server-daemon/src/backend/pid_start.rs b/codex-rs/app-server-daemon/src/backend/pid_start.rs
-index 1c286a8b14..4c73bce254 100644
+index 2c091aba30..871834b9df 100644
 --- a/codex-rs/app-server-daemon/src/backend/pid_start.rs
 +++ b/codex-rs/app-server-daemon/src/backend/pid_start.rs
-@@ -275,6 +275,7 @@ impl PidBackend {
+@@ -252,6 +252,7 @@ impl PidBackend {
                  process_start_time,
                  process_identity,
                  executable_identity: launched_identity,
 +                executable_path: Some(codex_bin.clone()),
              })
          }
-         .await
+         .await;
 diff --git a/codex-rs/app-server-daemon/src/backend/pid_tests.rs b/codex-rs/app-server-daemon/src/backend/pid_tests.rs
-index 19d262c097..ecb16eb609 100644
+index 72004bbc9c..db005738ff 100644
 --- a/codex-rs/app-server-daemon/src/backend/pid_tests.rs
 +++ b/codex-rs/app-server-daemon/src/backend/pid_tests.rs
 @@ -199,12 +199,14 @@ async fn stale_record_cleanup_preserves_replacement_record() {
@@ -70,7 +70,7 @@ index 19d262c097..ecb16eb609 100644
      };
      tokio::fs::write(
          &pid_file,
-@@ -251,6 +253,10 @@ async fn pid_record_captures_the_resolved_launch_binary() {
+@@ -245,6 +247,10 @@ async fn pid_record_captures_the_resolved_launch_binary() {
      let record: PidRecord =
          serde_json::from_slice(&std::fs::read(&backend.pid_file).expect("PID record"))
              .expect("parse PID record");
@@ -81,7 +81,7 @@ index 19d262c097..ecb16eb609 100644
      assert_eq!(
          record.executable_identity,
          Some(
-@@ -275,6 +281,12 @@ async fn pid_record_captures_the_resolved_launch_binary() {
+@@ -269,6 +275,12 @@ async fn pid_record_captures_the_resolved_launch_binary() {
              .executable_identity,
          None
      );
@@ -94,7 +94,7 @@ index 19d262c097..ecb16eb609 100644
      backend.stop().await.expect("stop daemon");
  }
  
-@@ -328,6 +340,7 @@ async fn stop_reaps_untracked_app_server_child() {
+@@ -322,6 +334,7 @@ async fn stop_reaps_untracked_app_server_child() {
          process_start_time: read_process_start_time(pid).await.expect("start time"),
          process_identity: None,
          executable_identity: None,
@@ -102,7 +102,7 @@ index 19d262c097..ecb16eb609 100644
      };
      tokio::fs::write(
          &pid_file,
-@@ -420,6 +433,7 @@ async fn shutdown_grace_handles_process_exit() {
+@@ -414,6 +427,7 @@ async fn shutdown_grace_handles_process_exit() {
                  .expect("start time"),
              process_identity: None,
              executable_identity: None,
@@ -110,7 +110,7 @@ index 19d262c097..ecb16eb609 100644
          };
          tokio::fs::write(
              &pid_file,
-@@ -502,6 +516,7 @@ async fn stopping_updater_signals_its_installer_process_group() {
+@@ -496,6 +510,7 @@ async fn stopping_updater_signals_its_installer_process_group() {
              process_start_time: read_process_start_time(pid).await.expect("start time"),
              process_identity: None,
              executable_identity: None,
@@ -118,7 +118,7 @@ index 19d262c097..ecb16eb609 100644
          })
          .expect("serialize pid"),
      )
-@@ -549,6 +564,7 @@ async fn exited_unreaped_updater_is_reaped() {
+@@ -543,6 +558,7 @@ async fn exited_unreaped_updater_is_reaped() {
              .expect("start time"),
          process_identity,
          executable_identity: None,
@@ -126,7 +126,7 @@ index 19d262c097..ecb16eb609 100644
      };
      let backend = PidBackend::new_update_loop(
          temp.path().join("codex"),
-@@ -685,6 +701,7 @@ async fn stale_creation_time_never_stops_reused_pid() {
+@@ -690,6 +706,7 @@ async fn stale_creation_time_never_stops_reused_pid() {
              process_start_time: "stale".into(),
              process_identity,
              executable_identity: None,
@@ -134,7 +134,7 @@ index 19d262c097..ecb16eb609 100644
          };
          let contents = serde_json::to_vec(&record).unwrap();
          std::fs::write(&backend.pid_file, &contents).unwrap();
-@@ -715,6 +732,7 @@ async fn failed_updater_handoff_preserves_predecessor_record() {
+@@ -775,6 +792,7 @@ async fn failed_updater_handoff_preserves_predecessor_record() {
              .unwrap(),
          process_identity: None,
          executable_identity: None,
@@ -142,7 +142,7 @@ index 19d262c097..ecb16eb609 100644
      };
      for record in [
          record.clone(),
-@@ -778,6 +796,7 @@ async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
+@@ -849,6 +867,7 @@ async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
              .expect("creation time"),
          process_identity: None,
          executable_identity: None,
@@ -150,7 +150,7 @@ index 19d262c097..ecb16eb609 100644
      };
      let predecessor = PidRecord {
          pid: std::process::id(),
-@@ -786,6 +805,7 @@ async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
+@@ -857,6 +876,7 @@ async fn updater_readiness_and_post_publication_failure_preserve_ownership() {
              .expect("creation time"),
          process_identity: None,
          executable_identity: None,
@@ -158,7 +158,7 @@ index 19d262c097..ecb16eb609 100644
      };
      tokio::fs::write(&backend.pid_file, serde_json::to_vec(&successor).unwrap())
          .await
-@@ -886,6 +906,7 @@ fn inaccessible_pid_preserves_identity_check_error() {
+@@ -966,6 +986,7 @@ fn inaccessible_pid_preserves_identity_check_error() {
              process_start_time: "stale".into(),
              process_identity: None,
              executable_identity: None,
@@ -179,10 +179,10 @@ index 8487fa2bc4..247af8bd96 100644
          self.start_inner(Some(record)).await?;
          Ok(())
 diff --git a/codex-rs/app-server-daemon/src/lib.rs b/codex-rs/app-server-daemon/src/lib.rs
-index 15ba7692b9..2a28c605ab 100644
+index 0fd3ed9c27..a470f72763 100644
 --- a/codex-rs/app-server-daemon/src/lib.rs
 +++ b/codex-rs/app-server-daemon/src/lib.rs
-@@ -33,6 +33,7 @@ use backend::BackendPaths;
+@@ -37,6 +37,7 @@ use backend::BackendPaths;
  use codex_app_server_protocol::RemoteControlConnectionStatus;
  use codex_app_server_protocol::RemoteControlPairingStartResponse;
  use codex_app_server_transport::app_server_control_socket_path;
@@ -190,7 +190,7 @@ index 15ba7692b9..2a28c605ab 100644
  use codex_utils_home_dir::find_codex_home;
  use managed_install::managed_codex_bin;
  #[cfg(any(unix, windows))]
-@@ -315,6 +316,7 @@ struct Daemon {
+@@ -319,6 +320,7 @@ struct Daemon {
      operation_lock_file: PathBuf,
      settings_file: PathBuf,
      managed_codex_bin: PathBuf,
@@ -198,7 +198,7 @@ index 15ba7692b9..2a28c605ab 100644
  }
  
  impl Daemon {
-@@ -324,7 +326,15 @@ impl Daemon {
+@@ -328,7 +330,15 @@ impl Daemon {
              .as_path()
              .to_path_buf();
          let state_dir = codex_home.as_path().join(STATE_DIR_NAME);
@@ -215,7 +215,7 @@ index 15ba7692b9..2a28c605ab 100644
          // Old CLIs must not mistake a daemon-owned installation for their backend.
          let (pid_file, update_pid_file) =
              if managed_codex_bin.starts_with(codex_home.as_path().join("packages/standalone")) {
-@@ -340,6 +350,7 @@ impl Daemon {
+@@ -344,6 +354,7 @@ impl Daemon {
              operation_lock_file: state_dir.join(OPERATION_LOCK_FILE_NAME),
              settings_file: state_dir.join(SETTINGS_FILE_NAME),
              managed_codex_bin,
@@ -223,7 +223,7 @@ index 15ba7692b9..2a28c605ab 100644
          })
      }
  
-@@ -405,6 +416,15 @@ impl Daemon {
+@@ -409,6 +420,15 @@ impl Daemon {
      async fn start(&self, feature_overrides: &BTreeMap<String, bool>) -> Result<LifecycleOutput> {
          let mut managed = self.clone();
          let mut settings = self.load_settings().await?;
@@ -239,7 +239,7 @@ index 15ba7692b9..2a28c605ab 100644
          let (status, backend, pid, info) = if let Ok(info) = client::probe(&self.socket_path).await
          {
              (
-@@ -467,7 +487,7 @@ impl Daemon {
+@@ -471,7 +491,7 @@ impl Daemon {
          prepare_install::prepare(self, &settings).await?;
          let mut managed = self.clone();
          managed.managed_codex_bin = self.current_managed_codex_bin()?;
@@ -248,7 +248,7 @@ index 15ba7692b9..2a28c605ab 100644
              backend::pid_update_loop_backend(self.backend_paths(&settings))
                  .stop()
                  .await?;
-@@ -868,7 +888,7 @@ impl Daemon {
+@@ -892,7 +912,7 @@ impl Daemon {
  
      async fn ensure_managed_updater(&self, settings: &DaemonSettings) -> Result<bool> {
          let updater = backend::pid_update_loop_backend(self.backend_paths(settings));
@@ -257,7 +257,7 @@ index 15ba7692b9..2a28c605ab 100644
              updater.stop().await?;
              return Ok(false);
          }
-@@ -918,6 +938,9 @@ impl Daemon {
+@@ -942,6 +962,9 @@ impl Daemon {
      }
  
      fn current_managed_codex_bin(&self) -> Result<PathBuf> {
@@ -267,7 +267,7 @@ index 15ba7692b9..2a28c605ab 100644
          // An installer can move a legacy binary into bin/ while this updater runs.
          let home = self
              .settings_file
-@@ -1275,6 +1298,7 @@ mod tests {
+@@ -1299,6 +1322,7 @@ mod tests {
              operation_lock_file: state.join("daemon.lock"),
              settings_file: state.join("settings.json"),
              managed_codex_bin: super::managed_codex_bin(home.path()),
@@ -275,7 +275,7 @@ index 15ba7692b9..2a28c605ab 100644
          };
          let lock = daemon.acquire_operation_lock().await.expect("lock");
          let stop = daemon.run(super::LifecycleCommand::Stop);
-@@ -1309,6 +1333,7 @@ mod tests {
+@@ -1333,6 +1357,7 @@ mod tests {
              operation_lock_file: state.join("daemon.lock"),
              settings_file: state.join("settings.json"),
              managed_codex_bin: state.join("missing-codex"),
@@ -283,7 +283,7 @@ index 15ba7692b9..2a28c605ab 100644
          };
          assert_eq!(
              daemon
-@@ -1335,6 +1360,7 @@ mod tests {
+@@ -1359,6 +1384,7 @@ mod tests {
              operation_lock_file: state.join("daemon.lock"),
              settings_file: state.join("settings.json"),
              managed_codex_bin: home.path().join("codex"),
@@ -291,7 +291,7 @@ index 15ba7692b9..2a28c605ab 100644
          };
          codex_app_server_transport::daemon_recovery::write_candidates(
              &daemon.recovery_file().expect("recovery path"),
-@@ -1392,6 +1418,7 @@ mod tests {
+@@ -1411,6 +1437,7 @@ mod tests {
              operation_lock_file: state.join("daemon.lock"),
              settings_file: state.join("settings.json"),
              managed_codex_bin: standalone.join("current/bin/codex"),
@@ -299,7 +299,7 @@ index 15ba7692b9..2a28c605ab 100644
          };
          let settings = DaemonSettings::default();
          assert!(
-@@ -1418,6 +1445,7 @@ mod tests {
+@@ -1437,6 +1464,7 @@ mod tests {
              operation_lock_file: temp_dir.path().join("daemon.lock"),
              settings_file: temp_dir.path().join("settings.json"),
              managed_codex_bin: temp_dir.path().join("missing-codex"),
@@ -308,7 +308,7 @@ index 15ba7692b9..2a28c605ab 100644
          let stderr_log = daemon.pid_file.with_extension("stderr.log");
          tokio::fs::write(&stderr_log, "unexpected argument")
 diff --git a/codex-rs/app-server-daemon/src/prepare_install.rs b/codex-rs/app-server-daemon/src/prepare_install.rs
-index c1d710fd9f..2abfb28d6d 100644
+index 62b0ded190..fbed2de8a1 100644
 --- a/codex-rs/app-server-daemon/src/prepare_install.rs
 +++ b/codex-rs/app-server-daemon/src/prepare_install.rs
 @@ -26,6 +26,9 @@ pub struct InstallRequest {
@@ -334,7 +334,7 @@ index c1d710fd9f..2abfb28d6d 100644
      let source = InstallContext::current().package_layout.as_ref();
      if !Box::pin(prepare_from_package(
 diff --git a/codex-rs/app-server-daemon/src/prepare_install_tests.rs b/codex-rs/app-server-daemon/src/prepare_install_tests.rs
-index 223d70ffaf..00948052a3 100644
+index 9704298282..ff188c6e29 100644
 --- a/codex-rs/app-server-daemon/src/prepare_install_tests.rs
 +++ b/codex-rs/app-server-daemon/src/prepare_install_tests.rs
 @@ -1,6 +1,7 @@
@@ -345,7 +345,7 @@ index 223d70ffaf..00948052a3 100644
  use super::prepare_from_package;
  use super::validate_package;
  use crate::settings::DaemonSettings;
-@@ -19,6 +20,7 @@ fn daemon(home: &std::path::Path) -> crate::Daemon {
+@@ -18,6 +19,7 @@ fn daemon(home: &std::path::Path) -> crate::Daemon {
          operation_lock_file: state.join("daemon.lock"),
          settings_file: state.join("settings.json"),
          managed_codex_bin: crate::managed_install::managed_codex_bin(home),
@@ -353,7 +353,7 @@ index 223d70ffaf..00948052a3 100644
      }
  }
  
-@@ -61,6 +63,38 @@ fn package(root: &Path, version: &str) -> PathBuf {
+@@ -49,6 +51,38 @@ fn package(root: &Path, version: &str) -> PathBuf {
      bin
  }
  
@@ -450,10 +450,10 @@ index c8d81fb8db..639fe62deb 100644
      }
      Ok(())
 diff --git a/codex-rs/app-server-daemon/src/update_loop_tests.rs b/codex-rs/app-server-daemon/src/update_loop_tests.rs
-index d932742371..9899383b0d 100644
+index 8ccfc16803..9d72e68ef3 100644
 --- a/codex-rs/app-server-daemon/src/update_loop_tests.rs
 +++ b/codex-rs/app-server-daemon/src/update_loop_tests.rs
-@@ -60,6 +60,11 @@ async fn explicit_update_migrates_running_and_stopped_installations() {
+@@ -200,6 +200,11 @@ async fn explicit_update_migrates_running_and_stopped_installations() {
      for (running, local) in [(false, false), (true, false), (false, true), (true, true)] {
          let home = TempDir::new().unwrap();
          let (legacy, release) = manual_update_daemon(&home);
@@ -465,7 +465,7 @@ index d932742371..9899383b0d 100644
          let root = home.path().join("packages/standalone");
          if local {
              let package = root.join("releases/local-development");
-@@ -308,6 +313,7 @@ fn manual_update_daemon(home: &TempDir) -> (Daemon, String) {
+@@ -448,6 +453,7 @@ fn manual_update_daemon(home: &TempDir) -> (Daemon, String) {
              operation_lock_file: state.join("daemon.lock"),
              settings_file: state.join("settings.json"),
              managed_codex_bin: standalone.join("current/codex"),
@@ -473,7 +473,7 @@ index d932742371..9899383b0d 100644
          },
          release,
      )
-@@ -419,6 +425,11 @@ async fn unsupported_request_preserves_updater_schedule() {
+@@ -599,6 +605,11 @@ async fn unsupported_request_preserves_updater_schedule() {
  
      let home = TempDir::new().expect("home");
      let (daemon, _) = manual_update_daemon(&home);
@@ -485,3 +485,27 @@ index d932742371..9899383b0d 100644
      let daemon = std::sync::Arc::new(daemon);
      let identity = executable_identity(&daemon.managed_codex_bin)
          .await
+@@ -721,6 +732,11 @@ async fn test_control_server(
+ async fn scheduled_no_op_preserves_daemon_and_hands_off_stale_updater() {
+     let home = TempDir::new().expect("home");
+     let (daemon, _) = manual_update_daemon(&home);
++    std::fs::write(
++        &daemon.settings_file,
++        r#"{"updater":{"autoUpdateEnabled":true}}"#,
++    )
++    .expect("enable scheduled updates");
+     let settings = crate::settings::DaemonSettings::default();
+     let backend = crate::backend::pid_backend(daemon.backend_paths(&settings));
+     backend.start().await.expect("start daemon");
+@@ -760,6 +776,11 @@ async fn scheduled_no_op_preserves_daemon_and_hands_off_stale_updater() {
+ async fn scheduled_resource_only_update_restarts_daemon() {
+     let home = TempDir::new().expect("home");
+     let (daemon, release) = manual_update_daemon(&home);
++    std::fs::write(
++        &daemon.settings_file,
++        r#"{"updater":{"autoUpdateEnabled":true}}"#,
++    )
++    .expect("enable scheduled updates");
+     let settings = crate::settings::DaemonSettings::default();
+     let backend = crate::backend::pid_backend(daemon.backend_paths(&settings));
+     backend.start().await.expect("start daemon");

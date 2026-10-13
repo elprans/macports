@@ -1,8 +1,8 @@
 diff --git a/codex-rs/Cargo.lock b/codex-rs/Cargo.lock
-index 01a121bf78..f1619caf14 100644
+index 1cee1174c2..4bf291faa9 100644
 --- a/codex-rs/Cargo.lock
 +++ b/codex-rs/Cargo.lock
-@@ -4023,6 +4023,7 @@ name = "codex-model-provider-info"
+@@ -4086,6 +4086,7 @@ name = "codex-model-provider-info"
  version = "0.0.0"
  dependencies = [
   "codex-client",
@@ -11,10 +11,10 @@ index 01a121bf78..f1619caf14 100644
   "codex-utils-absolute-path",
   "codex-utils-redacted-string",
 diff --git a/codex-rs/cli/src/doctor.rs b/codex-rs/cli/src/doctor.rs
-index d7014312c5..a094a04759 100644
+index b9f26e9d86..a5488ff671 100644
 --- a/codex-rs/cli/src/doctor.rs
 +++ b/codex-rs/cli/src/doctor.rs
-@@ -1228,7 +1228,9 @@ fn auth_check(config: &Config) -> DoctorCheck {
+@@ -1236,7 +1236,9 @@ fn auth_check(config: &Config) -> DoctorCheck {
          config.model_provider.env_key.as_deref(),
          config.model_provider.env_key_instructions.as_deref(),
          details.clone(),
@@ -25,7 +25,7 @@ index d7014312c5..a094a04759 100644
      ) {
          return check;
      }
-@@ -1309,6 +1311,8 @@ fn provider_specific_auth_check(
+@@ -1317,6 +1319,8 @@ fn provider_specific_auth_check(
      provider_env_key_instructions: Option<&str>,
      mut details: Vec<String>,
      env_var_present: impl Fn(&str) -> bool,
@@ -34,7 +34,7 @@ index d7014312c5..a094a04759 100644
  ) -> Option<DoctorCheck> {
      details.push(format!(
          "model provider requires OpenAI auth: {requires_openai_auth}"
-@@ -1332,15 +1336,66 @@ fn provider_specific_auth_check(
+@@ -1340,15 +1344,66 @@ fn provider_specific_auth_check(
          }
          Some(env_key) => {
              details.push(format!("provider auth env var: {env_key} (missing)"));
@@ -102,7 +102,7 @@ index d7014312c5..a094a04759 100644
                  )
                  .details(details)
                  .remediation(remediation),
-@@ -3461,6 +3516,8 @@ mod tests {
+@@ -3471,6 +3526,8 @@ mod tests {
              /*provider_env_key_instructions*/ None,
              Vec::new(),
              |_| false,
@@ -111,7 +111,7 @@ index d7014312c5..a094a04759 100644
          )
          .expect("non-OpenAI provider should produce a provider-specific check");
  
-@@ -3479,6 +3536,8 @@ mod tests {
+@@ -3489,6 +3546,8 @@ mod tests {
              Some("Set PROVIDER_API_KEY before running Codex."),
              Vec::new(),
              |_| false,
@@ -120,7 +120,7 @@ index d7014312c5..a094a04759 100644
          )
          .expect("non-OpenAI provider should produce a provider-specific check");
  
-@@ -3493,6 +3552,124 @@ mod tests {
+@@ -3503,6 +3562,124 @@ mod tests {
          );
      }
  
@@ -258,7 +258,7 @@ index e6a740d25d..224477803a 100644
  codex-utils-redacted-string = { workspace = true }
  http = { workspace = true }
 diff --git a/codex-rs/model-provider-info/src/lib.rs b/codex-rs/model-provider-info/src/lib.rs
-index ead5e9f419..773c046e85 100644
+index f020d34c25..1b6687dfda 100644
 --- a/codex-rs/model-provider-info/src/lib.rs
 +++ b/codex-rs/model-provider-info/src/lib.rs
 @@ -10,10 +10,14 @@
@@ -276,7 +276,7 @@ index ead5e9f419..773c046e85 100644
  use codex_protocol::error::Result as CodexResult;
  use codex_utils_redacted_string::RedactedString;
  use http::HeaderMap;
-@@ -65,6 +69,8 @@ const DEFAULT_STREAM_MAX_RETRIES: u64 = 5;
+@@ -68,6 +72,8 @@ const DEFAULT_STREAM_MAX_RETRIES: u64 = 5;
  const DEFAULT_REQUEST_MAX_RETRIES: u64 = 4;
  const DEFAULT_AWS_CREDENTIAL_EXPORT_TIMEOUT_MS: u64 = 30_000;
  const DEFAULT_AWS_AUTH_REFRESH_TIMEOUT_MS: u64 = 300_000;
@@ -285,7 +285,7 @@ index ead5e9f419..773c046e85 100644
  pub const DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS: u64 = 15_000;
  /// Hard cap for user-configured `stream_max_retries`.
  const MAX_STREAM_MAX_RETRIES: u64 = 100;
-@@ -467,25 +473,75 @@ other non-default provider fields are not supported"
+@@ -474,25 +480,75 @@ other non-default provider fields are not supported"
          })
      }
  
@@ -379,7 +379,7 @@ index ead5e9f419..773c046e85 100644
  
      /// Effective maximum number of request retries for this provider.
 diff --git a/codex-rs/model-provider-info/src/model_provider_info_tests.rs b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
-index 3cbd8b2bac..16413adc26 100644
+index 9c15c54b70..79bcd9b06e 100644
 --- a/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 +++ b/codex-rs/model-provider-info/src/model_provider_info_tests.rs
 @@ -1,4 +1,6 @@
@@ -389,7 +389,7 @@ index 3cbd8b2bac..16413adc26 100644
  use codex_utils_absolute_path::AbsolutePathBuf;
  use codex_utils_absolute_path::AbsolutePathBufGuard;
  use pretty_assertions::assert_eq;
-@@ -706,6 +708,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
+@@ -710,6 +712,49 @@ fn test_validate_provider_aws_rejects_conflicting_auth() {
      );
  }
  
@@ -440,10 +440,10 @@ index 3cbd8b2bac..16413adc26 100644
  fn test_validate_provider_aws_rejects_websockets() {
      let provider = ModelProviderInfo {
 diff --git a/codex-rs/protocol/src/error.rs b/codex-rs/protocol/src/error.rs
-index 2f4180acd0..6664446ca2 100644
+index 9e44430d6f..4267c7b539 100644
 --- a/codex-rs/protocol/src/error.rs
 +++ b/codex-rs/protocol/src/error.rs
-@@ -196,6 +196,8 @@ pub enum CodexErrorDetails {
+@@ -207,6 +207,8 @@ pub enum CodexErrorDetails {
      TokioJoin(#[from] JoinError),
      #[error("{0}")]
      EnvVar(EnvVarError),
@@ -452,7 +452,7 @@ index 2f4180acd0..6664446ca2 100644
  }
  
  impl From<&CodexErr> for CodexErrKind {
-@@ -357,6 +359,7 @@ impl CodexErr {
+@@ -370,6 +372,7 @@ impl CodexErr {
          LandlockPathFd(error: landlock::PathFdError),
          TokioJoin(error: JoinError),
          EnvVar(error: EnvVarError),
@@ -460,7 +460,7 @@ index 2f4180acd0..6664446ca2 100644
      );
  
      // TODO(anp): Remove this compatibility constructor once callers construct
-@@ -387,6 +390,7 @@ impl CodexErr {
+@@ -400,6 +403,7 @@ impl CodexErr {
              | CodexErrorDetails::SessionBudgetExceeded
              | CodexErrorDetails::Interrupted
              | CodexErrorDetails::EnvVar(_)
@@ -468,7 +468,7 @@ index 2f4180acd0..6664446ca2 100644
              | CodexErrorDetails::Fatal(_)
              | CodexErrorDetails::UsageNotIncluded
              | CodexErrorDetails::QuotaExceeded
-@@ -868,6 +872,40 @@ impl std::fmt::Display for EnvVarError {
+@@ -883,6 +887,40 @@ impl std::fmt::Display for EnvVarError {
      }
  }
  

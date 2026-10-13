@@ -101,10 +101,10 @@ index da153dcd59..a21f4d9854 100644
              )))
          })
 diff --git a/codex-rs/core/src/tools/spec_plan.rs b/codex-rs/core/src/tools/spec_plan.rs
-index bb1474feb5..f78b039b4b 100644
+index 7e2213456d..004c4a094b 100644
 --- a/codex-rs/core/src/tools/spec_plan.rs
 +++ b/codex-rs/core/src/tools/spec_plan.rs
-@@ -1191,8 +1191,7 @@ fn add_core_utility_tools(context: &CoreToolPlanContext<'_>, registry: &mut Tool
+@@ -1266,8 +1266,7 @@ fn add_core_utility_tools(context: &CoreToolPlanContext<'_>, registry: &mut Tool
          let model_messages = ResolvedModelMessages::from_model(context.model_info);
          registry.add_with_exposure(
              RequestUserInputAsyncHandler {

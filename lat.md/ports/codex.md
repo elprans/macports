@@ -1,10 +1,10 @@
 # codex
 
-The [Portfile](../../llm/codex/Portfile) packages Codex 0.159.1 with local macOS integration and nine patches beyond the default MacPorts recipe.
+The [Portfile](../../llm/codex/Portfile) packages Codex 0.162.1 with local macOS integration and nine patches beyond the default MacPorts recipe.
 
 ## Difference from MacPorts
 
-The default tree is at 0.152.1. The overlay advances Codex to 0.159.1 and adds local signing, optional sccache, conservative build resource controls, eight feature patches, and a compiler-compatibility patch.
+The default tree is at 0.160.0. The overlay advances Codex to 0.162.1 and adds local signing, optional sccache, conservative build resource controls, eight feature patches, and a Windows compatibility patch.
 
 It signs `codex` and `codex-code-mode-host` with a stable local identity, hardened runtime, and dylib-loading entitlements. A `libexec/codex` package holds both binaries and a manifest; symlinks expose the commands in `bin`. The ripgrep port supplies search externally.
 
@@ -14,7 +14,7 @@ Automatic daemon updates are off by default. Packaged CLIs stop the updater even
 
 The build uses Codex-published V8 pointer-compression and sandbox assets, optional sccache, a 25.6 GB per-job memory estimate, and no parallel build. Crate checksums live in a separate Tcl file to keep the Portfile maintainable.
 
-The compiler-compatibility patch raises the ChatGPT crate's recursion limit and follows the upstream network-policy helper rename so the source compiles.
+The Windows compatibility patch follows the upstream network-policy helper rename so the source compiles; upstream now provides the ChatGPT crate's recursion limit.
 
 ## Local features
 
